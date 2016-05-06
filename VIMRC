@@ -1,0 +1,28 @@
+" line numbers j;laksjdf;lkj sa;dlkj f;alsk jdf;lkajs d;lfkj ;aslkdj f;laksj
+" df;lkja sd;lkfj asfd;lkjsa df;lkja sd;flk j
+set number
+" active mouse
+set mouse=a
+" tabs to spaces of 4
+set expandtab
+set tabstop=4   " tab stop for length of tab character
+set autoindent
+set sw=4    " shiftwidth for >> command
+set sts=4   " softtabstop for tab command
+" Show extra whitespace
+set list
+set listchars=tab:␉·
+" quick save and quit keyboard shortcut things
+let mapleader="\<Space>"
+nmap <Leader>q :q<CR>
+nmap <Leader>w :w<CR>
+" highlight words
+set hlsearch
+nmap <Leader>s :set hlsearch!<CR>
+" indent plugin
+filetype plugin indent on
+let fortran_do_enddo=1
+let fortran_more_precise=1
+let fortran_have_tabs=1
+autocmd BufNewFile,BufRead * setlocal formatoptions-=c " get rid of new line once hit tabwidth
+autocmd BufNewFile,BufRead * setlocal formatoptions-=t " get rid of new line once hit tabwidth
