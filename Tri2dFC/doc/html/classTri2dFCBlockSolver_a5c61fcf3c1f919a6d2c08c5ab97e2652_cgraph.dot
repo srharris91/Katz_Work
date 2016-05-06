@@ -1,0 +1,14 @@
+digraph "Tri2dFCBlockSolver::gradSetup"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCBlockSolver\l::gradSetup",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCBlockSolver\l::gradSetupQuadratic",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a83e9273fdc756ef6a98ba593a3756bfc",tooltip="Compute quadratic FEM gradient coefficients. "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCBlockSolver\l::solutionPoints",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#af85bea6048c0c2ad865934e8e109968d",tooltip="Returns solution point locations in the standard equilateral triangle. "];
+  Node1 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="Tri2dFCBlockSolver\l::gradSetupCubic",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a024e616382d8737d842eb60f14c51760",tooltip="Compute cubic FEM gradient coefficients. "];
+  Node4 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+}

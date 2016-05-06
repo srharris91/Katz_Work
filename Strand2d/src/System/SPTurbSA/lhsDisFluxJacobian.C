@@ -1,0 +1,164 @@
+#include "StrandSPTurbSA.h"
+
+
+void StrandSPTurbSA::lhsDisFluxJacobian(const int& npts,
+					const double* A,
+					const double* xv,
+					const double* ql,
+					const double* qr,
+					double* M)
+{
+  // absolute Jacobian matrix (Roe)
+  int iq,iA,iM;
+  double Ax,Ay,ds,Nx,Ny,Tx,Ty,rl,rul,rvl,re,rnl,rqq,p,rhl,rr,rur,rvr,rnr,rhr,
+    dd,u,v,h,qq,cc,ccr,ccr2,c,ut,un,nu,l[nq],a,dlim=1.,R[nq*nq],S[nq*nq];
+
+  for (int n=0; n<npts; n++){
+    iq      = nq  *n;
+    iA      = ndim*n;
+    iM      = nq*nq*n;
+
+    Ax      = A[iA  ];
+    Ay      = A[iA+1];
+    ds      = sqrt(Ax*Ax+Ay*Ay);
+    Nx      = Ax/ds;
+    Ny      = Ay/ds;
+    Tx      = Ny;
+    Ty      =-Nx;
+
+    rl      = ql[iq  ];
+    rul     = ql[iq+1];
+    rvl     = ql[iq+2];
+    re      = ql[iq+3];
+    rnl     = ql[iq+4];
+    rqq     =(rul*rul+rvl*rvl)/rl;
+    p       = gm1*(re-.5*rqq);
+    rhl     = re+p;
+    rr      = qr[iq  ];
+    rur     = qr[iq+1];
+    rvr     = qr[iq+2];
+    re      = qr[iq+3];
+    rnr     = qr[iq+4];
+    rqq     =(rur*rur+rvr*rvr)/rr;
+    p       = gm1*(re-.5*rqq);
+    rhr     = re+p;
+
+    rl      = sqrt(rl);
+    rr      = sqrt(rr);
+    dd      = 1./(rl+rr);
+    rl      = 1./rl;
+    rr      = 1./rr;
+    u       =(rul*rl+rur*rr)*dd;
+    v       =(rvl*rl+rvr*rr)*dd;
+    h       =(rhl*rl+rhr*rr)*dd;
+    nu      =(rnl*rl+rnr*rr)*dd;
+    qq      = .5*(u*u+v*v);
+    cc      = gm1*(h-qq);
+    ccr     = 1./cc;
+    ccr2    = .5*ccr;
+    c       = sqrt(cc);
+    ut      = u*Tx+v*Ty;
+    un      = u*Nx+v*Ny-xv[n]/ds;
+
+    l[0]    = ds*fabs(un  );
+    l[1]    = ds*fabs(un  );
+    l[2]    = ds*fabs(un+c);
+    l[3]    = ds*fabs(un-c);
+    l[4]    = ds*fabs(un  );
+    a       = dlim*c*ds;
+    
+    for (int k=0; k<nq; k++) if (l[k] < a) l[k] = .5*(a+l[k]*l[k]/a);
+
+    R[0 ] = l[0];
+    R[1 ] = 0.;
+    R[2 ] = l[2];
+    R[3 ] = l[3];
+    R[4 ] = 0.;
+
+    R[5 ] = l[0]*u;
+    R[6 ] = l[1]*Tx;
+    R[7 ] = l[2]*(u+Nx*c);
+    R[8 ] = l[3]*(u-Nx*c);
+    R[9 ] = 0.;
+
+    R[10] = l[0]*v;
+    R[11] = l[1]*Ty;
+    R[12] = l[2]*(v+Ny*c);
+    R[13] = l[3]*(v-Ny*c);
+    R[14] = 0.;
+
+    R[15] = l[0]*qq;
+    R[16] = l[1]*ut;
+    R[17] = l[2]*(h+un*c);
+    R[18] = l[3]*(h-un*c);
+    R[19] = 0.;
+    
+    R[20] = 0.;
+    R[21] = 0.;
+    R[22] = l[2]*nu;
+    R[23] = l[3]*nu;
+    R[24] = l[4];
+
+    S[0 ] =-gm1*ccr*qq+1.;
+    S[1 ] = gm1*ccr*u;
+    S[2 ] = gm1*ccr*v;
+    S[3 ] =-gm1*ccr;
+    S[4 ] = 0.;
+
+    S[5 ] =-ut;
+    S[6 ] = Tx;
+    S[7 ] = Ty;
+    S[8 ] = 0.;
+    S[9 ] = 0.;
+
+    S[10] = ccr2*(gm1*qq-c*un);
+    S[11] =-ccr2*(gm1*u -c*Nx);
+    S[12] =-ccr2*(gm1*v -c*Ny);
+    S[13] = ccr2* gm1;
+    S[14] = 0.;
+
+    S[15] = ccr2*(gm1*qq+c*un);
+    S[16] =-ccr2*(gm1*u +c*Nx);
+    S[17] =-ccr2*(gm1*v +c*Ny);
+    S[18] = ccr2* gm1;
+    S[19] = 0.;
+    
+    S[20] =-nu*gm1*ccr*qq;
+    S[21] = nu*gm1*ccr*u;
+    S[22] = nu*gm1*ccr*v;
+    S[23] =-nu*gm1*ccr;
+    S[24] = 1.;
+
+    matmul(nq,nq,nq,&R[0],&S[0],&M[iM]);
+
+    M[iM+0 ] = ds*(fabs(un)+c);
+    M[iM+1 ] = 0.;
+    M[iM+2 ] = 0.;
+    M[iM+3 ] = 0.;
+    M[iM+4 ] = 0.;
+
+    M[iM+5 ] = 0.;
+    M[iM+6 ] = ds*(fabs(un)+c);
+    M[iM+7 ] = 0.;
+    M[iM+8 ] = 0.;
+    M[iM+9 ] = 0.;
+
+    M[iM+10] = 0.;
+    M[iM+11] = 0.;
+    M[iM+12] = ds*(fabs(un)+c);
+    M[iM+13] = 0.;
+    M[iM+14] = 0.;
+
+    M[iM+15] = 0.;
+    M[iM+16] = 0.;
+    M[iM+17] = 0.;
+    M[iM+18] = ds*(fabs(un)+c);
+    M[iM+19] = 0.;
+
+    M[iM+20] = 0.;
+    M[iM+21] = 0.;
+    M[iM+22] = 0.;
+    M[iM+23] = 0.;
+    M[iM+24] = ds*(fabs(un)+c);
+  }
+}

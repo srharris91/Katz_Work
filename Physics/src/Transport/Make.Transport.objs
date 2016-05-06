@@ -1,0 +1,3 @@
+TRANSPORTOBJS	= Transport/Transport.o			\
+		  Transport/TransportType.o		\
+		  Transport/Sutherland.o

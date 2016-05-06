@@ -1,0 +1,183 @@
+#include "StrandBlockSolver.h"
+#include "nbtrluC.h"
+#include "nbtrbkC.h"
+
+
+void StrandBlockSolver::solve(const int& step,
+			      const int& pseudoStep,
+			      const int& linearStep,
+			      const int& mglevel,
+			      const int& mode)
+{
+  // save the solution at the beginning of the pseudo step on the fine grid
+  // for measuring RMS convergence
+  if (mglevel == 0 && linearStep == 0){
+    if (pseudoStep > 0){
+      for (int k=0; k<nq; k++) rms(k) = 0.;
+      for (int n=0; n<nFaces+nBedges; n++)
+	for (int j=0; j<nPstr+2; j++)
+	  for (int k=0; k<nq; k++)
+	    rms(k) +=((q(k,j,n)-q0(k,j,n))*(q(k,j,n)-q0(k,j,n)));
+      for (int k=0; k<nq; k++) rms(k) /=(rmsNorm(k)*rmsNorm(k));
+    }
+    for (int n=0; n<nFaces+nBedges; n++)
+      for (int j=0; j<nPstr+2; j++)
+	for (int k=0; k<nq; k++) q0(k,j,n) = q(k,j,n);
+  }
+
+
+  // compute nodal values and gradients
+  nodalQ(mglevel);
+  nodalQa(mglevel);
+  gradQ(mglevel);
+  gradQa(mglevel);
+  limit(mglevel);
+
+
+  // determine extents of forward or backward sweep
+  int n1,n2,nn,m,i,l,jj=nPstr+1,npts=nPstr+2;
+  Array3D<double> de(nq,nq,npts);
+
+  //int sweep;
+  //if (pseudoStep%2 == 0) sweep = 0;
+  //else sweep = 1;
+
+  for (int sweep=0; sweep<2; sweep++){
+    if      (sweep == 0){
+      n1 = 0;
+      n2 = nFaces+nBedges;
+      nn = 1;
+    }
+    else{
+      n1 = nFaces+nBedges-2;
+      n2 = 0;
+      nn =-1;
+    }
+
+    for (int n=n1; n!=n2; n+=nn){
+      i = gsMap(n);
+
+      // initialize non-linear residual for this strand stack
+      for (int j=0; j<nPstr+2; j++)
+	for (int k=0; k<nq; k++) r(k,j,i) = 0.;
+
+
+      if (i < nFaces-nGfaces){ // interior dofs
+
+	// add in physical-time derivative term to the
+	// right hand side if unsteady
+	if (step > 0){
+	  if (mglevel == 0) rhsTimeFineS(i);
+	  else rhsTimeCoarseS(i);
+	}
+
+	// dissipation/inviscid terms
+	if (dissipation != 0 && inviscid != 0)
+	  if (mglevel == 0){
+	    rhsDissipationInviscidFineS(i);
+	    for (int m=0; m<nesc(i); m++){
+	      l = esc[i][m];
+	      rhsDissipationInviscidFineU(l);
+	    }}
+	  else{
+	    rhsDissipationInviscidCoarseS(i);
+	    for (int m=0; m<nesc(i); m++){
+	      l = esc[i][m];
+	      rhsDissipationInviscidCoarseU(l);
+	    }}
+	else{
+	  cout << "\nSeparate dissipation and inviscid routines not "
+	       << "implemented."
+	       << endl;
+	  exit(0);
+	}
+
+	// viscous terms
+	if (viscous != 0)
+	  if (mglevel == 0){
+	    rhsViscousFineS(i);
+	    for (int m=0; m<nesc(i); m++){
+	      l = esc[i][m];
+	      rhsViscousFineU(l);
+	    }}
+	  else{
+	    rhsViscousCoarseS(i);
+	    for (int m=0; m<nesc(i); m++){
+	      l = esc[i][m];
+	      rhsViscousCoarseU(l);
+	    }}
+
+	// boundary terms
+	if (mglevel == 0) rhsBoundaryFineS(i);
+	else rhsBoundaryCoarseS(i);
+
+	// physical source terms
+	if (source == 1 && mglevel == 0) rhsSourceFineS(i);
+
+	// MMS source terms
+	if (source == -1 && mglevel == 0) rhsSourceMMSS(i);
+      }
+
+
+      else if (i >= nFaces){ // unstructured boundary dofs
+
+	// boundary terms
+	if (mglevel == 0)
+	  for (int m=0; m<nesc(i); m++){
+	    l = esc[i][m];
+	    rhsBoundaryFineU(l);
+	  }
+	else
+	  for (int m=0; m<nesc(i); m++){
+	    l = esc[i][m];
+	    rhsBoundaryCoarseU(l);
+	  }
+
+	// MMS source terms
+	if (source == -1 && mglevel == 0) rhsSourceMMSU(i);
+      }
+
+      // multigrid forcing terms
+      if (mglevel > 0) rhsSourceMGS(i,mode,sweep,linearStep);
+
+      // invert tri-diagonal matrix for this strand stack and update
+      for (int j=0; j<nPstr+2; j++)
+	nbtrluC(0,jj,j,nq,&dm(0,0,j,i),&dd(0,0,j,i),&dp(0,0,j,i),
+		&r(0,0,i),&de(0,0,0));
+      nbtrbkC(0,jj,nq,&r(0,0,i),&de(0,0,0));
+      for (int j=0; j<fClip(i)+2; j++)
+	for (int k=0; k<nq; k++) q(k,j,i) -= r(k,j,i);
+      sys->stepQAdd(npts,
+		    &q(0,0,i),
+		    &qa(0,0,i));
+
+      // recompute nodal values and gradients that use stack i
+      if (mglevel == 0){
+	for (int m=0; m<npsc(i); m++){
+	  l = psc[i][m];
+	  nodalQS(l,mglevel);
+	  nodalQaS(l,mglevel);
+	}
+	if (nSharp > 0){
+	for (int m=0; m<nssc0(i); m++){ // update any sharp corner values
+	  l = ssc0[i][m];
+	  nodalQC(l,mglevel);
+	  nodalQaC(l,mglevel);
+	}}
+	for (int m=0; m<ncsc(i); m++){
+	  l = csc[i][m];
+	  gradQS(l,mglevel);
+	  gradQaS(l,mglevel);
+	}
+	if (nSharp > 0){
+	for (int m=0; m<nssc0(i); m++){ // update any sharp corner gradients
+	  l = ssc0[i][m];
+	  gradQC(l,mglevel);
+	  gradQaC(l,mglevel);
+	}}}}}
+
+  de.deallocate();
+
+  // reset limiter flag
+  limFlag = 0;
+}

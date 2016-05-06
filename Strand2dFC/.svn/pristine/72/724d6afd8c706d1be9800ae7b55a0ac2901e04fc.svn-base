@@ -1,0 +1,6 @@
+include System/SPLam/Make.SPLam.objs
+include System/SPTurbSA/Make.SPTurbSA.objs
+
+SYSTEMOBJS	= System/Strand2dFCSystem.o	\
+		  $(SPLAMOBJS)                  \
+                  $(SPTURBSAOBJS)

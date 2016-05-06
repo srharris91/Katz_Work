@@ -1,0 +1,13 @@
+\begin{thebibliography}{1}
+\newcommand{\enquote}[1]{``#1''}
+
+\bibitem{Work2014}
+Work, D., {\em NUMERICAL EXAMINATION OF FLUX CORRECTION FOR SOLVING THE
+  NAVIER-STOKES EQUATIONS ON UNSTRUCTURED MESHES\/}, Master's thesis, Utah
+  State University, 2014.
+
+\bibitem{Katz2015}
+Katz, A. and Work, D., \enquote{High-order flux correction/finite difference
+  schemes for strand grids,} {\em Journal of Computational Physics\/}, 2015.
+
+\end{thebibliography}

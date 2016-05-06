@@ -1,0 +1,62 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsSourceMMS()
+{
+  if      (order == 1)
+    for (int n=0; n<nNode; n++)
+      for (int k=0; k<nq; k++) r(n,k) -= v(n)*s(n,k);
+
+  else if (order == 2){
+    int n1,n2;
+    double Ax,Ay,dx,dy,vv,a;
+    for (int n=0; n<nEdge; n++){
+      n1         = edge(n,0);
+      n2         = edge(n,1);
+      Ax         = area(n,0);
+      Ay         = area(n,1);
+      dx         = x(n2,0)-x(n1,0);
+      dy         = x(n2,1)-x(n1,1);
+      vv         = .125*(dx*Ax+dy*Ay);
+      for (int k=0; k<nq; k++){
+	a        = vv*(s(n1,k)+s(n2,k));
+	r(n1,k) -= a;
+	r(n2,k) -= a;
+      }}}
+
+  else if (order == 3){
+    int n1,n2;
+    double Ax,Ay,dx,dy,vv,ds0,ds1,ds2;
+    Array2D<double> sx(nNode,nq),sy(nNode,nq);
+    Array2D<double> sxx(nNode,nq),sxy(nNode,nq),syy(nNode,nq);
+
+    // compute gradient and Hessian of S
+    gradient(nNode,nq,&s(0,0),&sx(0,0),&sy(0,0));
+    hessian(nNode,nq,&s(0,0),&sxx(0,0),&sxy(0,0),&syy(0,0));
+
+    for (int n=0; n<nEdge; n++){
+      n1         = edge(n,0);
+      n2         = edge(n,1);
+      Ax         = area(n,0);
+      Ay         = area(n,1);
+      dx         = x(n2,0)-x(n1,0);
+      dy         = x(n2,1)-x(n1,1);
+      vv         = .25*(dx*Ax+dy*Ay);
+      for (int k=0; k<nq; k++){
+	ds0     =              s  (n1,k)+s  (n2,k);
+	ds1     =-.5  *(dx   *(sx (n1,k)+sx (n2,k))   
+		       +dy   *(sy (n1,k)+sy (n2,k)));
+	ds2     =-.125*(dx*dx*(sxx(n1,k)+sxx(n2,k))
+		       +dy*dy*(syy(n1,k)+syy(n2,k))
+		    +2.*dx*dy*(sxy(n1,k)+sxy(n2,k)));
+	r(n1,k) -= .5*(ds0+ds1+ds2)*vv;
+	r(n2,k) -= .5*(ds0-ds1+ds2)*vv;
+      }}
+
+    sx.deallocate();
+    sy.deallocate();
+    sxx.deallocate();
+    sxy.deallocate();
+    syy.deallocate();
+  }
+}

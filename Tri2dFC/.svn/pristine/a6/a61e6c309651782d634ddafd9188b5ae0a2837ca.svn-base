@@ -1,0 +1,398 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::localGrid()
+{
+  // form cells surrounding vertices of the global mesh
+  int* csp2 = new int[nNodeG];
+  for (int n=0; n<nNodeG; n++) csp2[n] = 0;
+  for (int n=0; n<nTriG; n++)
+    for (int k=1; k<4; k++) csp2[triG[n][k]]++;
+
+  int** csp1 = new int*[nNodeG];
+  for (int n=0; n<nNodeG; n++){
+    if (csp2[n] > 0) csp1[n] = new int[csp2[n]];
+    else csp1[n] = NULL;
+  }
+
+  int j;
+  for (int n=0; n<nNodeG; n++) csp2[n] = 0;
+  for (int n=0; n<nTriG; n++)
+    for (int k=1; k<4; k++){
+      j = csp2[triG[n][k]];
+      csp1[triG[n][k]][j] = n;
+      csp2[triG[n][k]]++;
+    }
+
+
+  // extract edges of the global mesh, with the following ordering:
+  // edgeG(n,0) - first node on edge
+  // edgeG(n,1) - second node on edge
+  // edgeG(n,2) - CCW cell 
+  // edgeG(n,3) - CW cell (boundary tag if a boundary edge)
+  int nEdgeG =(3*nTriG+nEdgeBdG)/2;
+  Array2D<int> edgeG(nEdgeG,4);
+  edgeG.set(-1);
+  Array2D<int> nflag(nNodeG,2);
+  nflag.set(-1);
+  int i,l,k1,n1,n2,ne=0;
+  for (int n=0; n<nNodeG; n++){ //for each node
+    for (int m=0; m<csp2[n]; m++){ //look at the cells surrounding the node
+      j = csp1[n][m];
+      for (int k=1; k<4; k++){ //find the position of n in triG
+        if (n == triG[j][k]){
+          k1 = k;
+          break;
+        }}
+      for (int k=1; k<4; k++){
+        l = triG[j][k];
+        if (n < l){
+          if ((k1 == 1 && k == 2) ||
+              (k1 == 2 && k == 3) ||
+              (k1 == 3 && k == 1)) n1 = 0; //n to l is CCW
+          else n1 = 1; //n to l is CW
+	  if (nflag(l,0) != n){ //if haven't added this edge yet
+	    if (n1 == 0){//n to l is CCW
+	      edgeG(ne,0) = n;
+	      edgeG(ne,1) = l;
+	      edgeG(ne,2) = j;
+	    }
+	    else{//n to l is CW
+	      edgeG(ne,1) = n;
+	      edgeG(ne,0) = l;
+	      edgeG(ne,2) = j;
+	    }
+	    nflag(l,0) = n;
+	    nflag(l,1) = ne;
+	    ne++;
+	  }
+	  else{//have added this edge, just add the opposing node
+	    i         = nflag(l,1);
+	    edgeG(i,3) = j;
+	  }}}}}
+
+  if (ne != nEdgeG){
+    cout << "\n*** number of edges counted incorrectly in localGrid.C ***"
+         << endl;
+    exit(0);
+  }
+
+
+  // put boundary edges last
+  Array2D<int> edgeT(nEdgeG,4);
+  ne = 0;
+  for (int n=0; n<nEdgeG; n++)
+    if (edgeG(n,3) >= 0){
+      edgeT(ne  ,0) = edgeG(n,0);
+      edgeT(ne  ,1) = edgeG(n,1);
+      edgeT(ne  ,2) = edgeG(n,2);
+      edgeT(ne++,3) = edgeG(n,3);
+    }
+
+  if (ne != nEdgeG-nEdgeBdG){
+    cout << "\n*** number of b. edges counted incorrectly in localGrid.C ***"
+	 << endl;
+    exit(0);
+  }
+
+  for (int n=0; n<nEdgeG; n++)
+    if (edgeG(n,3) < 0){
+      edgeT(ne  ,0) = edgeG(n,0);
+      edgeT(ne  ,1) = edgeG(n,1);
+      edgeT(ne  ,2) = edgeG(n,2);
+      edgeT(ne++,3) = edgeG(n,3);
+    }
+
+  if (ne != nEdgeG){
+    cout << "\n*** number of edges counted incorrectly in localGrid.C ***"
+	 << endl;
+    exit(0);
+  }
+
+  for (int n=0; n<nEdgeG; n++){
+    edgeG(n,0) = edgeT(n,0);
+    edgeG(n,1) = edgeT(n,1);
+    edgeG(n,2) = edgeT(n,2);
+    edgeG(n,3) = edgeT(n,3);
+  }
+
+
+  // flag boundary nodes with the two boundary edge numbers that share it
+  nflag.set(-1);
+  for (int n=nEdgeG-nEdgeBdG; n<nEdgeG; n++){
+    n1 = edgeG(n,0);
+    n2 = edgeG(n,1);
+    if (nflag(n1,0) == -1) nflag(n1,0) = n;
+    else nflag(n1,1) = n;
+    if (nflag(n2,0) == -1) nflag(n2,0) = n;
+    else nflag(n2,1) = n;
+  }
+
+
+  // for each boundary edge fill in the boundary tag
+  for (int n=0; n<nEdgeBdG; n++){
+    n1 = edgeBdG(n,0);
+    n2 = edgeBdG(n,1);
+    if (nflag(n1,0) == nflag(n2,0) ||
+	nflag(n1,0) == nflag(n2,1)) k1 = nflag(n1,0);
+    else k1 = nflag(n1,1);
+    if (edgeG(k1,3) != -1){
+      cout << "\n*** error identifying boundary tags in connectivity.C ***"
+	   << endl;
+      exit(0);
+    }
+    else edgeG(k1,3) = edgeBdG(n,2);
+  }
+
+  /*
+  for (int n=0; n<nEdgeG; n++)
+    cout << n
+	 << " " << edgeG(n,0) << " " << edgeG(n,1)
+	 << " " << edgeG(n,2) << " " << edgeG(n,3) << endl;
+  exit(0);
+  */
+
+
+  // find edges surrounding cells, in CCW order
+  int c1,c2,p1,p2,p3;
+  Array2D<int> esc(nTriG,3);
+  for (int n=0; n<nEdgeG-nEdgeBdG; n++){
+    n1 = edgeG(n,0);
+    n2 = edgeG(n,1);
+    c1 = edgeG(n,2);
+    c2 = edgeG(n,3);
+    p1 = triG[c1][1];
+    p2 = triG[c1][2];
+    p3 = triG[c1][3];
+    if      (n1 == p1) k1 = 0;
+    else if (n1 == p2) k1 = 1;
+    else if (n1 == p3) k1 = 2;
+    else{
+      cout << "\n*** error extracting edges in localGrid.C ***" << endl;
+      exit(0);
+    }
+    esc(c1,k1) = n;
+    p1 = triG[c2][1];
+    p2 = triG[c2][2];
+    p3 = triG[c2][3];
+    if      (n2 == p1) k1 = 0;
+    else if (n2 == p2) k1 = 1;
+    else if (n2 == p3) k1 = 2;
+    else{
+      cout << "\n*** error extracting edges in localGrid.C ***" << endl;
+      exit(0);
+    }
+    esc(c2,k1) = n;
+  }
+  for (int n=nEdgeG-nEdgeBdG; n<nEdgeG; n++){
+    n1 = edgeG(n,0);
+    n2 = edgeG(n,1);
+    c1 = edgeG(n,2);
+    c2 = edgeG(n,3);
+    p1 = triG[c1][1];
+    p2 = triG[c1][2];
+    p3 = triG[c1][3];
+    if      (n1 == p1) k1 = 0;
+    else if (n1 == p2) k1 = 1;
+    else if (n1 == p3) k1 = 2;
+    else{
+      cout << "\n*** error extracting edges in localGrid.C ***" << endl;
+      exit(0);
+    }
+    esc(c1,k1) = n;
+  }
+
+  /*
+  for (int n=0; n<nTriG; n++)
+    cout << n << " " << esc(n,0) << " " << esc(n,1) << " " << esc(n,2) << endl;
+  exit(0);
+  */
+
+
+  // add new nodes along edges
+  nNode = nNodeG; // initialize node count
+  int nnEd = 2-level; //number of new nodes per edge
+  Array2D<int> eNode(nEdgeG,nnEd);
+  for (int n=0; n<nEdgeG; n++)
+    for (int j=0; j<nnEd; j++) eNode(n,j) = nNode++;
+
+
+  // form elements to be used for gradient computations
+  int m,nni,orderE=3-level; //order of local elements
+  if      (orderE == 1) nni = 0; //number of extra interior nodes
+  else if (orderE == 2) nni = 0;
+  else if (orderE == 3) nni = 1;
+  else{
+    cout << "\n*** level not recognized in localGrid.C ***" << endl;
+    exit(0);
+  }
+  nne   =(orderE+2)*(orderE+1)/2; //number of nodes per element
+  nElem = nTriG;
+  elem.allocate(nElem,nne);
+  for (int n=0; n<nElem; n++){
+    m = 0;
+    //corner verticies
+    for (int j=1; j<4; j++) elem(n,m++) = triG[n][j];
+
+    // edge dofs
+    for (int j=0; j<3; j++){
+      k1 = esc(n,j);
+      if (edgeG(k1,2) == n)
+	for (int i=0; i<nnEd; i++) elem(n,m++) = eNode( k1,i);
+      else
+	for (int i=nnEd-1; i>=0; i--) elem(n,m++) = eNode(k1,i);
+    }
+
+    // interior dofs
+    for (int j=0; j<nni; j++) elem(n,m++) = nNode++;
+  }
+
+  /*
+  cout << "\n" << level << endl;
+  for (int n=0; n<nElem; n++){
+    cout << n << " ";
+    for (int j=0; j<nne; j++) cout << elem(n,j) << " ";
+    cout << endl;
+  }
+  */
+
+
+  // form local triangles
+  int nTriE=pow(orderE,2); //number of triangles in each element
+  Array2D<int> triE(nTriE,3);
+  nTri = nElem*nTriE;
+  elementConn(orderE,
+	      &triE(0,0));
+  tri.allocate(nTri,3);
+  m = 0;
+  for (int n=0; n<nElem; n++)
+    for (int j=0; j<nTriE; j++){
+      tri(m  ,0) = elem(n,triE(j,0));
+      tri(m  ,1) = elem(n,triE(j,1));
+      tri(m++,2) = elem(n,triE(j,2));
+    }
+
+  /*
+  for (int n=0; n<nTri; n++)
+    cout << n << " "
+	 << tri(n,0) << " " << tri(n,1) << " " << tri(n,2) << endl;
+  exit(0);
+  */
+
+
+  // form local boundary edges
+  nEdgeBd = nEdgeBdG*orderE;
+  edgeBd.allocate(nEdgeBd,3);
+  m = 0;
+  for (int n=nEdgeG-nEdgeBdG; n<nEdgeG; n++){
+    p1 = edgeG(n,0);
+    p2 = edgeG(n,1);
+    n1 = p1;
+    for (int j=0; j<nnEd; j++){
+      n2            = eNode(n,j);
+      edgeBd(m  ,0) = n1;
+      edgeBd(m  ,1) = n2;
+      edgeBd(m++,2) = edgeG(n,3);
+      n1            = n2;
+    }
+    n2            = p2;
+    edgeBd(m  ,0) = n1;
+    edgeBd(m  ,1) = n2;
+    edgeBd(m++,2) = edgeG(n,3);
+  }
+
+  if (m != nEdgeBd){
+    cout << m << " " << nEdgeBd << endl;
+    cout << "\n*** b. edges formed incorrectly in localGrid.C ***" << endl;
+    exit(0);
+  }
+
+  /*
+  for (int n=0; n<nEdgeBd; n++)
+    cout << n
+	 << " " << edgeBd(n,0) << " "
+	 << " " << edgeBd(n,1) << " "
+	 << " " << edgeBd(n,2) << endl;
+  exit(0);
+  */
+
+
+  // find (r,s) locations of equally spaced points in the standard triangle
+  Array2D<double> rs(nne,3);
+  solutionPoints(orderE,
+		 spacing,
+		 &rs(0,0));
+
+
+  // find coordinates of local points
+  x.allocate(nNode,2);
+  x.set(0.);
+  int orderM,nneM;
+  int spacingM=0; //equally-spaced
+  bool test=false;
+  double ri,si,lm;
+  Array2D<double> rsM,lcM;
+  nflag.deallocate();
+  nflag.allocate(nNode,1);
+  nflag.set(-1);
+  for (int n=0; n<nTriG; n++){
+    orderM = triG[n][0];
+    nneM   =(orderM+2)*(orderM+1)/2;
+
+    // equally-spaced (r,s) locations using numbering consistent with the mesh
+    rsM.allocate(nneM,3);
+    solutionPoints(orderM,
+		   spacingM,
+		   &rsM(0,0));
+
+    // lagrange polynomials at the rsM locations
+    lcM.allocate(nneM,nneM);
+    lagrangePoly(test,
+		 orderM,
+		 &rsM(0,0),
+		 &lcM(0,0));
+      
+    // evaluate the (x,y) coordinates at the local points
+    for (int i=0; i<nne; i++){ // ith local point
+      if (nflag(elem(n,i),0) == -1){//haven't computed this location yet
+	ri = rs(i,0);
+	si = rs(i,1);
+	for (int m=0; m<nneM; m++){ // mth Lagrange polynomial used in mapping
+	  j  = 0;
+	  lm = 0.;
+	  for (int k=0; k<=orderM; k++)
+	    for (int l=0; l<=orderM-k; l++)
+	      lm += pow(ri,k)*pow(si,l)*lcM(m,j++);
+	  x(elem(n,i),0) += lm*xG(triG[n][m+1],0);
+	  x(elem(n,i),1) += lm*xG(triG[n][m+1],1);
+	}
+	nflag(elem(n,i),0) = 0;
+      }
+    }
+    rsM.deallocate();
+    lcM.deallocate();
+  }
+
+  /*
+  for (int n=0; n<nNode; n++)
+    cout << n << " " << x(n,0) << " " << x(n,1) << endl;
+  exit(0);
+  */
+
+
+  // deallocate work arrays
+  for (int n=0; n<nNodeG; n++)
+    if (csp1[n]) delete [] csp1[n];
+  delete [] csp1;
+  delete [] csp2;
+  edgeG.deallocate();
+  nflag.deallocate();
+  edgeT.deallocate();
+  esc.deallocate();
+  eNode.deallocate();
+  triE.deallocate();
+  rs.deallocate();
+  rsM.deallocate();
+  lcM.deallocate();
+}

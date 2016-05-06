@@ -1,0 +1,90 @@
+#include "SolutionType.h"
+
+
+// [SolutionType]
+SolutionType::SolutionType()
+{
+  nq = 0.;
+  ndim = 0.;
+  rValue = NULL;
+  state = NULL;
+  transport = NULL;
+}
+// [SolutionType]
+
+
+// [~SolutionType]
+SolutionType::~SolutionType()
+{
+  if (rValue) delete [] rValue;
+  rValue = NULL;
+}
+// [~SolutionType]
+
+
+// [getRefValues]
+double* SolutionType::getRefValues()
+{
+  return(rValue);
+}
+// [getRefValues]
+
+
+// [getQx]
+void SolutionType::getQx(const int& npts,
+			 const double* x,
+			 double* qx)
+{
+  cout << "\nQx values not defined for this SolutionType. "
+       << "Returning null reference values." << endl;
+  qx = NULL;
+}
+// [getQx]
+
+
+// [getQy]
+void SolutionType::getQy(const int& npts,
+			 const double* x,
+			 double* qy)
+{
+  cout << "\nQy values not defined for this SolutionType. "
+       << "Returning null reference values." << endl;
+  qy = NULL;
+}
+// [getQy]
+
+
+// [getQxx]
+void SolutionType::getQxx(const int& npts,
+			  const double* x,
+			  double* qxx)
+{
+  cout << "\nQxx values not defined for this SolutionType. "
+       << "Returning null reference values." << endl;
+  qxx = NULL;
+}
+// [getQxx]
+
+
+// [getQxy]
+void SolutionType::getQxy(const int& npts,
+			  const double* x,
+			  double* qxy)
+{
+  cout << "\nQxy values not defined for this SolutionType. "
+       << "Returning null reference values." << endl;
+  qxy = NULL;
+}
+// [getQxy]
+
+
+// [getQyy]
+void SolutionType::getQyy(const int& npts,
+			  const double* x,
+			  double* qyy)
+{
+  cout << "\nQyy values not defined for this SolutionType. "
+       << "Returning null reference values." << endl;
+  qyy = NULL;
+}
+// [getQyy]

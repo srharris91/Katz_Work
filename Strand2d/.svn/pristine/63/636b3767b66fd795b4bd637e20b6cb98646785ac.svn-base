@@ -1,0 +1,36 @@
+#include "StrandSPTurbSA.h"
+
+
+void StrandSPTurbSA::stepVisEigenvalue(const int& npts,
+				    const double* A,
+				    const double* q1,
+				    const double* q2,
+				    const double* qa1,
+				    const double* qa2,
+				    const double* v1,
+				    const double* v2,
+				    double* sr)
+{
+  int iq,iqa,iA,j=1;
+  double r,p,t,mu,k,Ax,Ay,AA,gamma,Cp,rnu,chi,fv1,muT;
+  for (int n=0; n<npts; n++){
+    iq    = nq  *n;
+    iqa   = nqa *n;
+    iA    = ndim*n;
+    r     = 1./(q1 [iq   ]+q2 [iq   ]);
+    rnu   =     q1 [iq +4]+q2 [iq +4];
+    p     = .5*(qa1[iqa  ]+qa2[iqa  ]);
+    t     = .5*(qa1[iqa+3]+qa2[iqa+3]);
+    mu    =     qa1[iqa+5]+qa2[iqa+5];
+    k     =     qa1[iqa+6]+qa2[iqa+6];
+    Cp    = gamma*rGas/gm1;
+    chi   = rnu/mu;
+    fv1   = pow(chi,3.)/(pow(chi,3.)+pow(cv1,3.));
+    muT   = fv1*rnu;
+    if (rnu < 0.) muT = 0.;
+    Ax    = A[iA  ];
+    Ay    = A[iA+1];
+    AA    = 2.*(Ax*Ax+Ay*Ay)/(v1[n]+v2[n]);
+    sr[n] = AA*r*(mu+gamma*k/Cp+muT*(1.+gamma)/prnT);
+  }
+}

@@ -1,0 +1,5 @@
+SOLUTIONOBJS	= Solution/Solution.o			\
+		  Solution/SolutionType.o		\
+		  Solution/FreeStream.o			\
+		  Solution/Perturb.o			\
+		  Solution/Mms2d.o

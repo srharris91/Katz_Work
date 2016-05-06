@@ -1,0 +1,50 @@
+###############################################################################
+#                                                                             #
+#                    Src level Makefile for codes                             #
+#                                                                             #
+###############################################################################
+
+
+include Make.rules
+
+OBJS = src/*.o
+
+
+driver: library run/main.o
+	$(LINKER) $(CXXFLAGS) $(INCLUDE) run/main.o \
+	-o $(EXEC) \
+	-L./lib          -l$(MANAGERLIB) \
+	-L$(SOLVER)/lib  -l$(SOLVERLIB)  \
+	-L$(PHYSICS)/lib -l$(PHYSICSLIB) \
+	$(LDFLAGS)
+	mv $(EXEC) ./run
+	rm -rf *.dSYM
+
+
+solver: library run/mainSolver.o
+	$(LINKER) $(CXXFLAGS) $(INCLUDE) run/mainSolver.o \
+	-o $(EXECSOLVER) \
+	-L./lib          -l$(MANAGERLIB) \
+	-L$(SOLVER)/lib  -l$(SOLVERLIB)  \
+	-L$(PHYSICS)/lib -l$(PHYSICSLIB) \
+	$(LDFLAGS)
+	mv $(EXECSOLVER) ./run
+	rm -rf *.dSYM
+
+
+library: includes
+	( cd src && $(MAKE) all ) || exit 1
+	$(AR) r lib$(MANAGERLIB).a $(OBJS)
+	mv lib$(MANAGERLIB).a lib/
+
+
+includes:
+	ln -f src/*.h include/
+
+
+clean:
+	( cd src && $(MAKE) clean ) || exit 1
+	$(RM) lib/lib$(MANAGERLIB).a
+	$(RM) *.o */*.o *~ */*~ *.mod */*.mod
+	$(RM) run/*.exec
+	

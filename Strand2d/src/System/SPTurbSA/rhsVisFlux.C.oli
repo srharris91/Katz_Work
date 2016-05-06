@@ -1,0 +1,68 @@
+#include "StrandSPTurbSA.h"
+#include <math.h>
+
+void StrandSPTurbSA::rhsVisFlux(const int& npts,
+				const double* A,
+				const double* q,
+				const double* qa,
+				const double* qx,
+				const double* qy,
+				const double* qax,
+				const double* qay,
+				double* f)
+{
+  int iq,iqa,iA;
+  double Ax,Ay,ue,ve,me,ke,ux,uy,vx,vy,tx,ty,dd,sxx,sxy,syx,syy,qxx,qyy,
+    chi,fn,rho,rnu,met,ket,fv1,nux,nuy,nvx,nvy;
+  
+  for (int n=0; n<npts; n++){
+    iq   = nq *n;
+    iqa  = nqa*n;
+    iA   = ndim*n;
+    Ax   = A[iA  ];
+    Ay   = A[iA+1];
+    rho  = q[iq  ];
+    rnu  = q[iq+4];
+    ue   = qa[iqa+1];
+    ve   = qa[iqa+2];
+    me   = qa[iqa+5];
+    ke   = qa[iqa+6];
+    ux   = qax[iqa+1];
+    uy   = qay[iqa+1];
+    vx   = qax[iqa+2];
+    vy   = qay[iqa+2];
+    tx   = qax[iqa+3];
+    ty   = qay[iqa+3];
+    nux  = qax[iqa+4];
+    nuy  = qay[iqa+4];
+    dd   =(ux+vy)/3.;
+
+    chi  = rnu/me;
+    fv1  = pow(chi,3.)/(pow(chi,3.)+pow(cv1,3.));
+    met  = fv1*rnu;
+    ket  = met*rGas*ggm1/prnT;
+    fn   =(me+rnu)/sigma;
+    if (rnu < 0.){
+      fn  =(me+rnu+rnu*rnu/me)/sigma;
+      met = 0.;
+      ket = 0.;
+    }
+    me  += met;
+    ke  += ket;
+
+    sxx  = 2.*me*(ux-dd);
+    sxy  =    me*(uy+vx);
+    syx  = sxy;
+    syy  = 2.*me*(vy-dd);
+    qxx  =-ke*tx;
+    qyy  =-ke*ty;
+    nvx  = fn*nux;
+    nvy  = fn*nuy;
+
+    f[iq  ] = 0.;
+    f[iq+1] = Ax*sxx+Ay*syx;
+    f[iq+2] = Ax*sxy+Ay*syy;
+    f[iq+3] = Ax*(ue*sxx+ve*sxy-qxx)+Ay*(ue*syx+ve*syy-qyy);
+    f[iq+4] = Ax*nvx+Ay*nvy;
+  }
+}

@@ -1,0 +1,78 @@
+!> \brief
+!! This subroutine reads general inputs for the meshing layer.
+!!
+!! Comments:
+!!
+!! Versions:
+!!   - 1.0 Katz 08/03/2010
+!!
+!! Additional notes:\par
+!!  none
+!!
+!! Source code:
+!!   \include readinput.f90
+
+
+SUBROUTINE readinput(inputfile, &
+                     inputlength, &
+                     surfaceMesh, &
+                     meshlength0, &
+                     meshlength, &
+                     nPartitions,&
+                     iwrite, &
+                     strandDist, &
+                     nPtsPerStrand, &
+                     nfringe, &
+                     stretchRatio, &
+                     wallSpacing, &
+                     strandLength, &
+                     deltaSmooth, &
+                     trimType)
+
+IMPLICIT NONE
+
+INTEGER,INTENT(IN   ) :: inputlength
+CHARACTER(inputlength),INTENT(IN   ) :: inputfile
+INTEGER,INTENT(IN   ) :: meshlength0
+INTEGER,INTENT(  OUT) :: meshlength
+CHARACTER(meshlength0),INTENT(  OUT) :: surfaceMesh
+INTEGER,INTENT(  OUT) :: nPartitions    !< number of grid partitions
+INTEGER,INTENT(  OUT) :: iwrite         !< verbosity flag
+INTEGER,INTENT(  OUT) :: strandDist     !< type of strand point distribution
+INTEGER,INTENT(  OUT) :: nPtsPerStrand  !< number of strand points
+INTEGER,INTENT(  OUT) :: nfringe        !< number of fringe cells (fine level)
+REAL   ,INTENT(  OUT) :: stretchRatio   !< max. allowable stretch ratio
+REAL   ,INTENT(  OUT) :: wallspacing    !< spacing of first strand point
+REAL   ,INTENT(  OUT) :: strandLength   !< length of strand
+REAL   ,INTENT(  OUT) :: deltaSmooth    !< smoothing threshold
+INTEGER,INTENT(  OUT) :: trimType       !< type of trimming to perform
+INTEGER :: iinputunit
+NAMELIST/strandGen2d/surfaceMesh, &
+                     nPartitions, &
+                     iwrite, &
+                     strandDist, &
+                     nPtsPerStrand, &
+                     nfringe, &
+                     stretchRatio, &
+                     wallSpacing, &
+                     strandLength, &
+                     deltaSmooth, &
+                     trimType
+
+
+surfaceMesh = ''
+
+iinputunit = 7
+OPEN(iinputunit,FILE=inputfile,STATUS='old')
+
+READ(iinputunit,strandGen2d)
+WRITE(*,*)
+WRITE(*,strandGen2d)
+WRITE(*,*)
+
+CLOSE(iinputunit)
+
+meshlength = LEN_TRIM(surfaceMesh)
+
+
+END SUBROUTINE readinput

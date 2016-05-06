@@ -1,0 +1,89 @@
+! input file for Strand2d
+&numerics
+	iprint		= 1
+	itest		= 0
+	idebug		= 0
+        iConvFile       = 1
+        iSolnFile       = 1
+        iResdFile       = 1
+        iErrFile        = 1
+        iSurfFile       = 1
+        standAlone      = 1
+        restartStep     = 0
+        nRestart        = 0
+        nOutput         = 1
+        nSteps          = 0
+        nPseudoSteps    = 50
+        nPseudoSteps0   = 500
+        nLinearSteps    = 2
+	nLevels         = 3
+        mgCycle         = 2 !1=v-cycle, 2=w-cycle
+        gradient        = 1 !0=constant, 1=linear
+        nodeVal         = 3 !1=volume, 2=ls, 3=mapped
+        perturb         = 0 !0=no perturb, 1=strand pert., 2=full pert.
+	limiter		= 1 !0=no limiter, 1=limiter
+	brelax		= .0 !0.=fully 1st order BC, 1.=fully 2nd order BC
+	gradClip	= 1. !1.=liberal clipping, 1.D14=no clipping
+        dtUnsteady      = 0.001
+        cfl0            = 1.D14
+        vnn0            = 1.D14
+        cfl             = 1.D14
+        vnn             = 1.D14
+	nRamp           = 20
+        convLimit       = 1.D-13
+        relax           = .5
+	systemType	= 'SPTurbSA' !SPLam: single phase inviscid or
+			  	  !       laminar viscous
+	                    	  !SPTurbSA:  single phase turb. SA
+			    	  !SPTurbKw:  single phase turb. k-w
+/
+
+&SPturbSA
+        viscous         = 1
+        solution	= 'freeStream'
+				       !freeStream: free stream
+			    	       !perturb:    perturbed initial state
+			    	       !mms2d:      manufactured solution
+			    	       !ringleb:    Ringleb flow
+	state(1)	= 'idealGas'   !idealGas:   ideal gas
+	transport(1)	= 'sutherland' !sutherland: Sutherland's Law
+	nBpatches	= 5
+	bType(1)	= 'inviscidWall'
+	bValue(1:5,1)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+	bType(2)	= 'viscousWall'
+	bValue(1:5,2)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+	bType(3)	= 'inflow'
+	bValue(1:5,3)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+	bType(4)	= 'outflow'
+	bValue(1:5,4)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+	bType(5)	= 'outflow'
+	bValue(1:5,5)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+/
+
+&freeStream
+	rValue(1:5)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+/
+
+&perturb
+	rValue(1:5)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+	pert		= .1
+/
+
+&mms2d
+	rValue(1:5)	= 101325.,6.94449998200014D1,0.,300.,4.1666999892001D-5 ! (p,u,v,T,nuT)
+	period		= 10.
+	amplitude	= .1
+/
+
+&idealGas
+        rGas(1)		= 287.06
+        gamma(1)	= 1.4
+/
+
+&sutherland
+	mu0(1)		= 1.634156530983452D-5
+	t0(1)		= 300.
+	s(1)		= 110.4
+        prn(1)		= .75
+	prnT(1)		= .9
+/

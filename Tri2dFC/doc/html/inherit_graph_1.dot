@@ -1,0 +1,27 @@
+digraph "Graphical Class Hierarchy"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCSPLamBc",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBc.html",tooltip="Class Tri2dFCSPLamBc holds the data and specifies the operations for various boundary conditions rela..."];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCSPLamBcDirichlet",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcDirichlet.html",tooltip="Class Tri2dFCSPLamBcDirichlet holds the data and specifies the operations for a dirichlet boundary co..."];
+  Node1 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCSPLamBcFarField",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcFarField.html",tooltip="Class Tri2dFCSPLamBcFarField holds the data and specifies the operations for a dirichlet boundary con..."];
+  Node1 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="Tri2dFCSPLamBcFrozen",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcFrozen.html",tooltip="Class Tri2dFCSPLamBcFrozen holds the data and specifies the operations for a dirichlet boundary condi..."];
+  Node1 -> Node5 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="Tri2dFCSPLamBcInflow",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcInflow.html",tooltip="Class Tri2dFCSPLamBcInflow holds the data and specifies the operations for a dirichlet boundary condi..."];
+  Node1 -> Node6 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="Tri2dFCSPLamBcInviscidWall",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcInviscidWall.html",tooltip="Class Tri2dFCSPLamBcInviscidWall holds the data and specifies the operations for a dirichlet boundary..."];
+  Node1 -> Node7 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="Tri2dFCSPLamBcNothing",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcNothing.html",tooltip="Class Tri2dFCSPLamBcNothing holds the data and specifies the operations for a dirichlet boundary cond..."];
+  Node1 -> Node8 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="Tri2dFCSPLamBcOutflow",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcOutflow.html",tooltip="Class Tri2dFCSPLamBcOutflow holds the data and specifies the operations for a dirichlet boundary cond..."];
+  Node1 -> Node9 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="Tri2dFCSPLamBcPeriodic",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcPeriodic.html",tooltip="Class Tri2dFCSPLamBcPeriodic holds the data and specifies the operations for a dirichlet boundary con..."];
+  Node1 -> Node10 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="Tri2dFCSPLamBcSymmetry",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcSymmetry.html",tooltip="Class Tri2dFCSPLamBcSymmetry holds the data and specifies the operations for a dirichlet boundary con..."];
+  Node1 -> Node11 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="Tri2dFCSPLamBcViscousWall",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSPLamBcViscousWall.html",tooltip="Class Tri2dFCSPLamBcViscousWall holds the data and specifies the operations for a dirichlet boundary ..."];
+}

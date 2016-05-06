@@ -1,0 +1,81 @@
+#include "StrandSPLam.h"
+
+
+void StrandSPLam::lhsVisFluxJacobian(const int& npts,
+				     const double* A,
+				     const double* B,
+				     const double* qe,
+				     const double* qae,
+				     double* M)
+{
+  int iqa,iA,iM;
+  double Ax,Ay,Bx,By,Cxx,Cxy,Cyx,Cyy,a,b,u,v,mu,k,qnA,qnB;
+  for (int n=0; n<npts; n++){
+    iqa  = nqa*n;
+    iA   = ndim*n;
+    iM   = nq*nq*n;
+    Ax   = A[iA  ];
+    Ay   = A[iA+1];
+    Bx   = B[iA  ];
+    By   = B[iA+1];
+    Cxx  = Ax*Bx/3.;
+    Cxy  = Ax*By/3.;
+    Cyx  = Ay*Bx/3.;
+    Cyy  = Ay*By/3.;
+    a    = Ax*Bx+Ay*By;
+    b    = Ax*By-Ay*Bx;
+    u    = qae[iqa+1];
+    v    = qae[iqa+2];
+    mu   = qae[iqa+4];
+    k    = qae[iqa+5];
+    qnA  = Ax*u+Ay*v;
+    qnB  = Bx*u+By*v;
+
+    M[iM   ] = 0.;
+    M[iM+1 ] = 0.;
+    M[iM+2 ] = 0.;
+    M[iM+3 ] = 0.;
+
+    M[iM+4 ] = 0.;
+    M[iM+5 ] = mu*( a+Cxx);
+    M[iM+6 ] = mu*(-b+Cxy);
+    M[iM+7 ] = 0.;
+
+    M[iM+8 ] = 0.;
+    M[iM+9 ] = mu*( b+Cyx);
+    M[iM+10] = mu*( a+Cyy);
+    M[iM+11] = 0.;
+
+    M[iM+12] = 0.;
+    M[iM+13] = mu*(a*u+Ax*qnB-2./3.*Bx*qnA);
+    M[iM+14] = mu*(a*v+Ay*qnB-2./3.*By*qnA);
+    M[iM+15] = a*k;
+
+
+    /*
+    double sr;
+    sr = fabs(mu*(2.*a+Cxx+Cyy));
+    if (fabs(a*k) > sr) sr = fabs(a*k);
+
+    M[iM   ] = 0.;
+    M[iM+1 ] = 0.;
+    M[iM+2 ] = 0.;
+    M[iM+3 ] = 0.;
+
+    M[iM+4 ] = 0.;
+    M[iM+5 ] = sr;
+    M[iM+6 ] = 0.;
+    M[iM+7 ] = 0.;
+
+    M[iM+8 ] = 0.;
+    M[iM+9 ] = 0.;
+    M[iM+10] = sr;
+    M[iM+11] = 0.;
+
+    M[iM+12] = 0.;
+    M[iM+13] = 0.;
+    M[iM+14] = 0.;
+    M[iM+15] = sr;
+    */
+  }
+}

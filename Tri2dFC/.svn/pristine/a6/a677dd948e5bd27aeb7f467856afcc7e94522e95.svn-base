@@ -1,0 +1,58 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::metric()
+{
+  // node volumes
+  v.allocate(nNode);
+  volume();
+
+
+  // face areas
+  area.allocate(nEdge,2);
+  areaBd.allocate(nEdgeBd,2);
+  faceArea();
+
+
+  // compute derivatives of the Lagrange polynomials at the mesh nodes
+  lr.allocate(nne,nne);
+  ls.allocate(nne,nne);
+  lrr.allocate(nne,nne);
+  lss.allocate(nne,nne);
+  lrs.allocate(nne,nne);
+  gradSetup();
+
+
+  // local Jacobian terms,
+  // for each cell, compute Jacobian terms using the highest order
+  // approximation available in the global mesh
+  xr.allocate(nElem,nne);
+  yr.allocate(nElem,nne);
+  xs.allocate(nElem,nne);
+  ys.allocate(nElem,nne);
+  jac.allocate(nElem,nne);
+  jacobian();
+
+
+  // compute derivatives of the Lagrange polynomials at the mesh nodes of
+  // the sub elements, as well as the Jacobian terms
+  if (level == 0){
+    lrS.allocate(nneS,nneS);
+    lsS.allocate(nneS,nneS);
+    lrrS.allocate(nneS,nneS);
+    lssS.allocate(nneS,nneS);
+    lrsS.allocate(nneS,nneS);
+    xrS.allocate(nElemS,nngS);
+    yrS.allocate(nElemS,nngS);
+    xsS.allocate(nElemS,nngS);
+    ysS.allocate(nElemS,nngS);
+    jacS.allocate(nElemS,nngS);
+    gradSetupS();
+  }
+
+
+  // boundary normals
+  ln.allocate(nNodeBd,2);
+  bNormal();
+}

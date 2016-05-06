@@ -1,0 +1,83 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::jacobian()
+{
+  // for each cell, compute Jacobian terms using the highest order
+  // approximation available in the global mesh
+  xr.allocate(nElem,nne);
+  yr.allocate(nElem,nne);
+  xs.allocate(nElem,nne);
+  ys.allocate(nElem,nne);
+  jac.allocate(nElem,nne);
+
+  xr.set(0.);
+  yr.set(0.);
+  xs.set(0.);
+  ys.set(0.);
+  jac.set(0.);
+
+  int orderE=3-level;
+  Array2D<double> rs(nne,3);
+  solutionPoints(orderE,
+		 spacing,
+		 &rs(0,0));
+
+  bool test=false;
+  int spacingM=0; //equally spaced
+  int j,km,lm,orderM,nneM;
+  double dL,L0,L1,lrm,lsm,ri,si;
+  Array2D<double> rsM,lcM;
+  for (int n=0; n<nTriG; n++){
+    orderM = triG[n][0];
+    nneM   =(orderM+2)*(orderM+1)/2;
+
+    // equally-spaced (r,s) locations using numbering consistent with the mesh
+    rsM.allocate(nneM,3);
+    solutionPoints(orderM,
+		   spacingM,
+		   &rsM(0,0));
+
+    // lagrange polynomials at the rsM locations
+    lcM.allocate(nneM,nneM);
+    lagrangePoly(test,
+		 orderM,
+		 &rsM(0,0),
+		 &lcM(0,0));
+
+    // evaluate the Jacobian terms at the mesh points
+    for (int i=0; i<nne; i++){ //ith mesh point
+      ri = rs(i,0);
+      si = rs(i,1);
+      for (int m=0; m<nneM; m++){ //mth Lagrange polynomial used in the mapping
+	j   = 0;
+	lrm = 0.;
+	lsm = 0.;
+	for (int k=0; k<=orderM; k++){
+	  for (int l=0; l<=orderM-k; l++){
+	    km   = max(0,k-1);
+	    lm   = max(0,l-1);
+	    lrm +=((double)k)*pow(ri,km)*pow(si,l )*lcM(m,j  );
+	    lsm +=((double)l)*pow(ri,k )*pow(si,lm)*lcM(m,j++);
+	  }
+	}
+	xr(n,i) += lrm*xG(triG[n][m+1],0);
+	yr(n,i) += lrm*xG(triG[n][m+1],1);
+	xs(n,i) += lsm*xG(triG[n][m+1],0);
+	ys(n,i) += lsm*xG(triG[n][m+1],1);
+      }
+      jac(n,i) = xr(n,i)*ys(n,i)-yr(n,i)*xs(n,i);
+      /*
+      xr(n,i) /= jac(n,i); // pre-divide these by Jacobian
+      yr(n,i) /= jac(n,i);
+      xs(n,i) /= jac(n,i);
+      ys(n,i) /= jac(n,i);
+      */
+    }
+    rsM.deallocate();
+    lcM.deallocate();
+  }
+
+  rs.deallocate();
+}

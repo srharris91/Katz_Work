@@ -1,0 +1,4 @@
+include System/SPLam/Make.SPLam.objs
+
+SYSTEMOBJS	= System/Tri2dFCSystem.o	\
+		  $(SPLAMOBJS)

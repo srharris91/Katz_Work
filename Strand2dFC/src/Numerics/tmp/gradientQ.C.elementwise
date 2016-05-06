@@ -1,0 +1,39 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::gradientQ()
+{
+  qx.set(0.);
+  if (surfOrder > 1){
+    int ni,nm;
+    double xnj,ynj;
+    Array1D<int> sum(nSurfNode);
+    Array2D<double> qs(nStrandNode,nq);
+    sum.set(0);
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<meshOrder+1; i++){ // ith point in the element
+	ni = surfElem(n,i);
+	qs.set(0.);
+	for (int m=0; m<meshOrder+1; m++){ // mth Lagrange poly. in mapping
+	  nm = surfElem(n,m);
+	  for (int j=0; j<nStrandNode; j++)
+	    for (int k=0; k<nq; k++) qs(j,k) += ls(i,m)*q(nm,j,k);
+	}
+	sum(ni)++;
+	for (int j=0; j<nStrandNode; j++){
+	  xnj = xn(ni,j)/jac(n,i,j);
+	  ynj = yn(ni,j)/jac(n,i,j);
+	  for (int k=0; k<nq; k++){
+	    qx(ni,j,k,0) += ynj*qs(j,k);
+	    qx(ni,j,k,1) -= xnj*qs(j,k);
+	  }}}
+    for (int n=0; n<nSurfNode; n++)
+      for (int j=0; j<nStrandNode; j++)
+	for (int k=0; k<nq; k++){
+	  qx(n,j,k,0) /= (double)sum(n);
+	  qx(n,j,k,1) /= (double)sum(n);
+	}
+    sum.deallocate();
+    qs.deallocate();
+  }
+}

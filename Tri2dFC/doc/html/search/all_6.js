@@ -1,0 +1,24 @@
+var searchData=
+[
+  ['gamma',['gamma',['../classTri2dFCSPLam.html#adbf87439f53a1446be1efee5d5038a63',1,'Tri2dFCSPLam::gamma()'],['../classTri2dFCSPLamBc.html#af618ca794b5b37dec1a20c6fe1eb1352',1,'Tri2dFCSPLamBc::gamma()']]],
+  ['ggm1',['ggm1',['../classTri2dFCSPLam.html#a50cc2a0cbd624b40b3aa45321e5fb944',1,'Tri2dFCSPLam::ggm1()'],['../classTri2dFCSPLamBc.html#aa340cc038beac321b651c947148d1a21',1,'Tri2dFCSPLamBc::ggm1()']]],
+  ['gm1',['gm1',['../classTri2dFCSPLam.html#af2ac5396bf4a6fa6b7f619addafda861',1,'Tri2dFCSPLam::gm1()'],['../classTri2dFCSPLamBc.html#ae6a857a523ffd8d5223a7aa1284d5854',1,'Tri2dFCSPLamBc::gm1()']]],
+  ['gradient',['gradient',['../classTri2dFCBlockSolver.html#ad3662ce6a800bed1ff1be312771c25c4',1,'Tri2dFCBlockSolver']]],
+  ['gradient_2ec',['gradient.C',['../gradient_8C.html',1,'']]],
+  ['gradmethod',['gradMethod',['../classTri2dFCBlockSolver.html#a32e315d4369da5ea2b2e96a4a4f07205',1,'Tri2dFCBlockSolver']]],
+  ['gradqacomputed',['gradQaComputed',['../classTri2dFCBlockSolver.html#a670830c929e54383e12512699547acc6',1,'Tri2dFCBlockSolver']]],
+  ['gradqcomputed',['gradQComputed',['../classTri2dFCBlockSolver.html#a1bd37d60e9c7476f7c026759a63f01e2',1,'Tri2dFCBlockSolver']]],
+  ['gradsetup',['gradSetup',['../classTri2dFCBlockSolver.html#a5c61fcf3c1f919a6d2c08c5ab97e2652',1,'Tri2dFCBlockSolver']]],
+  ['gradsetup_2ec',['gradSetup.C',['../gradSetup_8C.html',1,'']]],
+  ['gradsetupcubic',['gradSetupCubic',['../classTri2dFCBlockSolver.html#a024e616382d8737d842eb60f14c51760',1,'Tri2dFCBlockSolver']]],
+  ['gradsetupcubic_2ec',['gradSetupCubic.C',['../gradSetupCubic_8C.html',1,'']]],
+  ['gradsetupquadratic',['gradSetupQuadratic',['../classTri2dFCBlockSolver.html#a83e9273fdc756ef6a98ba593a3756bfc',1,'Tri2dFCBlockSolver']]],
+  ['gradsetupquadratic_2ec',['gradSetupQuadratic.C',['../gradSetupQuadratic_8C.html',1,'']]],
+  ['gradstencil',['gradStencil',['../classTri2dFCBlockSolver.html#a3b0bcd4a353dcfa209dadb97cabbfaa8',1,'Tri2dFCBlockSolver']]],
+  ['gradstencil_2ec',['gradStencil.C',['../gradStencil_8C.html',1,'']]],
+  ['gx',['gx',['../classTri2dFCBlockSolver.html#a2e49db8c0c218e9005aa0fe014867928',1,'Tri2dFCBlockSolver']]],
+  ['gxc',['gxC',['../classTri2dFCBlockSolver.html#a39746af4b91b63926192290da06e5965',1,'Tri2dFCBlockSolver']]],
+  ['gxq',['gxQ',['../classTri2dFCBlockSolver.html#a7fd241f40e43a59f6ce8937088389675',1,'Tri2dFCBlockSolver']]],
+  ['gxs',['gxS',['../classTri2dFCBlockSolver.html#adf3519dcbba6ef4f1709c03c64c6807f',1,'Tri2dFCBlockSolver']]],
+  ['gxx',['gxx',['../classTri2dFCBlockSolver.html#a90db7267e03c22e6b4653fbf24ebdb4e',1,'Tri2dFCBlockSolver']]]
+];

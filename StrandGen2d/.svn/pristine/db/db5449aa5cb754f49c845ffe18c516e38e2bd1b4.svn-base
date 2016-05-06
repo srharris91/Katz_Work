@@ -1,0 +1,43 @@
+To compile strandGen2d, edit Make.rules, then type "make libr". This will
+make a library to which you may link a main file to run the strand
+meshing routines. I have included a main.C file in the "driver" directory.
+To make an executable for testing, type "make driver."
+In the Makefile, ARCCFD should be set to the
+directory containing the strand block solver.
+
+To run the test executable, go the the "driver" directory and type "./strandGen2d"
+
+Here are the modules of strandGen:
+
+1. StrandGlobalMesh
+   - singleton instance (sgm) 
+   - reads input file and stores these inputs
+   - reads mesh file and stores the global mesh data
+   - partitions the global mesh into StrandBlocks, which are stored here
+     in the StrandGlobalMesh.
+
+2. StrandMultiBlockMesh
+   - singleton instance (smbm)
+   - manages the methods of the StrandBlocks to prepare them for the solver
+   - methods include initialize, sprout, print
+
+3. StrandBlock
+   - multiple (nStrandblocks) objects
+   - methods include print, renumbering, and all the sprout methods.
+   - holds all strand mesh data (which reduces to surface data)
+
+4. StrandMultiBlockSolver
+   - singleton instance (smbs)
+   - manages multiblock solution procedure, including multigrid
+   - methods include initialize, take step, output data
+
+5. StrandBlockSolver
+   - multiple (nStrandBlocks*nLevels) objects (nLevels is # of MG levels.)
+   - each fine level StrandBlockSolver is initialized with its
+     corresponding StrandBlock and points to all its data. Coarse
+     level StrandBlockSolvers will be initialized by their parent
+     StrandBlockSolvers.
+   - this is actually part of the CFD solver and resides with the
+     solver, not strandGen
+   - holds all solver related data for a block
+   - calls the "control" layer routines for the solver written in fortran

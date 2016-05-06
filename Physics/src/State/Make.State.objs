@@ -1,0 +1,4 @@
+STATEOBJS	= State/State.o			\
+		  State/StateType.o		\
+		  State/IdealGas.o		\
+		  State/Incompressible.o

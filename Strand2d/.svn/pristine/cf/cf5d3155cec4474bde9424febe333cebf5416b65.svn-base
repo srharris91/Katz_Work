@@ -1,0 +1,74 @@
+! input file for Strand2d
+&numerics
+	iprint		= 1
+	itest		= 0
+	idebug		= 0
+        iConvFile       = 1
+        iSolnFile       = 1
+        iResdFile       = 1
+        iErrFile        = 1
+        iSurfFile       = 1
+        standAlone      = 1
+        restartStep     = 0
+        nRestart        = 0
+        nOutput         = 1
+        nSteps          = 0
+        nPseudoSteps    = 0
+        nPseudoSteps0   = 200
+        nLinearSteps    = 2
+	nLevels         = 4
+        mgCycle         = 2 !1=v-cycle, 2=w-cycle
+        gradient        = 2 !0=constant, 1=ls, 2=green
+        nodeVal         = 3 !1=volume, 2=ls, 3=mapped
+        perturb         = 0 !0=no perturb, 1=strand pert., 2=full pert.
+	limiter		= 1 !0=no limiter, 1=limiter
+        dtUnsteady      = 0.001
+        cflLinear       = 1.D14
+        cfl             = 1.D14
+        vnn             = 1.D14
+        convLimit       = 1.D-14
+        relax           = 1.
+	coarseDis       = 1.
+	systemType	= 0 !0=single phase inviscid or laminar viscous,
+	                    !1=single phase turb. SA,
+			    !2=single phase turb. k-w,
+/
+
+&system
+        viscous         = 1
+        source          = 0 !0=no source, 1=physical source, -1=MMS source
+        exactSoln       = 2 !0=use initial, 1=trig, 2=perturb
+        p0              = 101325.
+	u0		= 100.
+	v0		= 0.
+	t0		= 300.
+        Re              = 5000.
+        ReRefLength     = 1.
+	nComp		= 1
+	state(1)	= 'idealGas'
+	transport(1)	= 'sutherland'
+	nBpatches	= 5
+	bType(1)	= 'inviscidWall'
+	bValue(1:4,1)	= (/101325.,100.,0.,300./) ! (p,u,v,T)
+	bType(2)	= 'viscousWall'
+	bValue(1:4,2)	= (/101325.,100.,0.,300./) ! (p,u,v,T)
+	bType(3)	= 'inflow'
+	bValue(1:4,3)	= (/101325.,100.,0.,300./) ! (p,u,v,T)
+	bType(4)	= 'outflow'
+	bValue(1:4,4)	= (/101325.,100.,0.,300./) ! (p,u,v,T)
+	bType(5)	= 'outflow'
+	bValue(1:4,5)	= (/101325.,100.,0.,300./) ! (p,u,v,T)
+/
+
+&idealGas
+        rGas(1)		= 287.06
+        gamma(1)	= 1.4
+/
+
+&sutherland
+        prn(1)		= .75
+	Cp(1)		= 1004.71
+	t0(1)		= 291.15
+	mu0(1)		= .00001827
+	s(1)		= 110.4
+/

@@ -1,0 +1,96 @@
+/**
+ * \brief
+ * Implementation file for Class Tri2dFCBlockSolver. Individual methods
+ * are contained in files with the name of the method itself, except for
+ * static variables, constructors, destructors, and get and set methods.
+ *
+ * \author
+ * Aaron Katz
+ *
+ * \version
+ * 1.0
+ *
+ * \date
+ * 2013-01-01
+ */
+
+
+#include "Tri2dFCBlockSolver.h"
+
+
+int    Tri2dFCBlockSolver::iPrint=0;
+int    Tri2dFCBlockSolver::iTest=0;
+int    Tri2dFCBlockSolver::iDebug=0;
+int    Tri2dFCBlockSolver::iConvFile=0;
+int    Tri2dFCBlockSolver::iSolnFile=0;
+int    Tri2dFCBlockSolver::iResdFile=0;
+int    Tri2dFCBlockSolver::iErrFile=0;
+int    Tri2dFCBlockSolver::iSurfFile=0;
+int    Tri2dFCBlockSolver::standAlone=0;
+int    Tri2dFCBlockSolver::restartStep=0;
+int    Tri2dFCBlockSolver::nRestart=0;
+int    Tri2dFCBlockSolver::nOutput=0;
+int    Tri2dFCBlockSolver::nSteps=0;
+int    Tri2dFCBlockSolver::nPseudoSteps=0;
+int    Tri2dFCBlockSolver::nPseudoSteps0=0;
+int    Tri2dFCBlockSolver::nLinearSteps=0;
+int    Tri2dFCBlockSolver::nRKStages=0;
+int    Tri2dFCBlockSolver::implicit=0;
+int    Tri2dFCBlockSolver::nLevels=0;
+int    Tri2dFCBlockSolver::spacing=0;
+int    Tri2dFCBlockSolver::gradMethod=0;
+int    Tri2dFCBlockSolver::mgCycle=0;
+int    Tri2dFCBlockSolver::limiter=0;
+int    Tri2dFCBlockSolver::timeAcc=0;
+double Tri2dFCBlockSolver::dtUnsteady=0.;
+double Tri2dFCBlockSolver::cfl=0.;
+double Tri2dFCBlockSolver::vnn=0.;
+double Tri2dFCBlockSolver::smooth=0.;
+double Tri2dFCBlockSolver::convLimit=0.;
+double Tri2dFCBlockSolver::relax=0.;
+
+
+// [Tri2dFCBlockSolver]
+Tri2dFCBlockSolver::Tri2dFCBlockSolver()
+{
+  dataInit();
+}
+// [Tri2dFCBlockSolver]
+
+
+// [~Tri2dFCBlockSolver]
+Tri2dFCBlockSolver::~Tri2dFCBlockSolver()
+{
+}
+// [~Tri2dFCBlockSolver]
+
+
+// get methods
+const int& Tri2dFCBlockSolver::getNLevels(){return(nLevels);}
+int* Tri2dFCBlockSolver::getOrders(){return(&orders(0));}
+const int& Tri2dFCBlockSolver::getIConvFile(){return(iConvFile);}
+const int& Tri2dFCBlockSolver::getRestartStep(){return(restartStep);}
+const int& Tri2dFCBlockSolver::getNOutput(){return(nOutput);}
+const int& Tri2dFCBlockSolver::getNSteps(){return(nSteps);}
+const int& Tri2dFCBlockSolver::getNPseudoSteps(){return(nPseudoSteps);}
+const int& Tri2dFCBlockSolver::getNPseudoSteps0(){return(nPseudoSteps0);}
+const int& Tri2dFCBlockSolver::getNRKStages(){return(nRKStages);}
+const int& Tri2dFCBlockSolver::getMgCycle(){return(mgCycle);}
+const int& Tri2dFCBlockSolver::getNq(){return(nq);}
+const int& Tri2dFCBlockSolver::getNDofs(){return(nNode);}
+const int& Tri2dFCBlockSolver::getNNode(){return(nNode);}
+const int& Tri2dFCBlockSolver::getNNodeBd(){return(nNodeBd);}
+const double& Tri2dFCBlockSolver::getConvLimit(){return(convLimit);}
+int* Tri2dFCBlockSolver::getElem(){return(&elem(0,0));}
+int* Tri2dFCBlockSolver::getNodeBd(){return(&nodeBd(0));}
+double* Tri2dFCBlockSolver::getRms(){
+  for (int k=0; k<nq; k++) rms(k) = 0.;
+  for(int n=0; n<nNode; n++)
+    for (int k=0; k<nq; k++) rms(k) += pow((q(n,k)-q0(n,k)),2);
+  for (int k=0; k<nq; k++) rms(k) /= pow(rmsNorm(k),2);
+  return(&rms(0));
+}
+double* Tri2dFCBlockSolver::getX(){return(&x(0,0));}
+double* Tri2dFCBlockSolver::getQ(){return(&q(0,0));}
+double* Tri2dFCBlockSolver::getQ0(){return(&q0(0,0));}
+double* Tri2dFCBlockSolver::getR(){return(&r(0,0));}

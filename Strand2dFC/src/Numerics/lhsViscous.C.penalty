@@ -1,0 +1,259 @@
+#include "Strand2dFCBlockSolver.h"
+
+
+void Strand2dFCBlockSolver::lhsViscous(const int& j)
+{
+  // viscous variable Jacobian
+  Array3D<double> G(nSurfNode,nqaGradQa,nq);
+  for (int n=0; n<nSurfNode; n++)
+    sys->lhsVisVariableJacobian(1,&q(n,j,0),&qa(n,j,0),&G(n,0,0));
+
+
+  // strand edge viscous flux contributions
+  int ni;
+  double jac1,xs1,ys1,xn1,yn1,dnrr=1./deltaN/deltaN,dqn[nq],dqan[nqa];
+  double Pdnr=Pinv0/deltaN;
+  Array2D<double> A(nq,nq),Aj(nq,nq),bn(nq,nqaGradQa),bnj(nq,nqaGradQa);
+  if (j == 0)
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<meshOrder+1; i++){ // ith point in the element
+	ni   = surfElem(n,i);
+	jac1 = jac(n,i,j);
+	xs1  = xs(n,i,j);
+	ys1  = ys(n,i,j);
+	xn1  = xn(ni,j);
+	yn1  = yn(ni,j);
+	
+	// j+2 contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j+2,0),&qa(ni,j+2,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l)  = Aj(k,l);
+	
+	// j+1 contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j+1,0),&qa(ni,j+1,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) -= 3.*Aj(k,l);
+	
+	// j contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j,0),&qa(ni,j,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += 2.*Aj(k,l);
+	
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j,0),&qa(ni,j,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l)  = 2.*bnj(k,l);
+	
+	jac1 = jac(n,i,j+1);
+	xs1  = xs(n,i,j+1);
+	ys1  = ys(n,i,j+1);
+	xn1  = xn(ni,j+1);
+	yn1  = yn(ni,j+1);
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j+1,0),&qa(ni,j+1,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l) -= bnj(k,l);
+
+	matmul(nq,nqaGradQa,nq,&bn(0,0),&G(ni,0,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += Aj(k,l);
+	
+	// add to LHS Jacobian
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) Ads(n,i,k,l) -= dnrr*A(k,l);
+
+	// penalty term
+	jac1 = jac(n,i,j);
+	xs1  = xs(n,i,j);
+	ys1  = ys(n,i,j);
+	xn1  = xn(ni,j);
+	yn1  = yn(ni,j);
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j,0),&qa(ni,j,0),&bnj(0,0));
+	matmul(nq,nqaGradQa,nq,&bnj(0,0),&G(ni,0,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) =-1.*Aj(k,l)/deltaN;
+
+	for (int k=0; k<nq; k++) dqn[k] = 0.;
+	for (int m=0; m<nBndVis; m++)
+	  for (int k=0; k<nq; k++) dqn[k] += vcn4[m]*q(ni,m,k);
+	for (int k=0; k<nq; k++) dqn[k] /= deltaN;
+	for (int k=0; k<nqa; k++) dqan[k] = 0.;
+	for (int m=0; m<nBndVis; m++)
+	  for (int k=0; k<nqa; k++) dqan[k] += vcn4[m]*qa(ni,m,k);
+	for (int k=0; k<nqa; k++) dqan[k] /= deltaN;
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &dqn[0],&dqan[0],&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += Aj(k,l);
+
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) Ads(n,i,k,l) -= Pdnr*A(k,l);
+      }
+
+
+  else if (j == nStrandNode-1)
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<meshOrder+1; i++){ // ith point in the element
+	ni   = surfElem(n,i);
+	jac1 = jac(n,i,j);
+	xs1  = xs(n,i,j);
+	ys1  = ys(n,i,j);
+	xn1  = xn(ni,j);
+	yn1  = yn(ni,j);
+	
+	// j-2 contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j-2,0),&qa(ni,j-2,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l)  = Aj(k,l);
+	
+	// j-1 contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j-1,0),&qa(ni,j-1,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) -= 3.*Aj(k,l);
+	
+	// j contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j,0),&qa(ni,j,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += 2.*Aj(k,l);
+	
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j,0),&qa(ni,j,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l)  = 2.*bnj(k,l);
+	
+	jac1 = jac(n,i,j-1);
+	xs1  = xs(n,i,j-1);
+	ys1  = ys(n,i,j-1);
+	xn1  = xn(ni,j-1);
+	yn1  = yn(ni,j-1);
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j-1,0),&qa(ni,j-1,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l) -= bnj(k,l);
+
+	matmul(nq,nqaGradQa,nq,&bn(0,0),&G(ni,0,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += Aj(k,l);
+	
+	// add to LHS Jacobian
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) Ads(n,i,k,l) -= dnrr*A(k,l);
+
+	// penalty term
+	jac1 = jac(n,i,j);
+	xs1  = xs(n,i,j);
+	ys1  = ys(n,i,j);
+	xn1  = xn(ni,j);
+	yn1  = yn(ni,j);
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j,0),&qa(ni,j,0),&bnj(0,0));
+	matmul(nq,nqaGradQa,nq,&bnj(0,0),&G(ni,0,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) = 1.5*Aj(k,l)/deltaN;
+
+	for (int k=0; k<nq; k++) dqn[k] = 0.;
+	for (int m=0; m<nBndVis; m++)
+	  for (int k=0; k<nq; k++) dqn[k] -= vcn4[m]*q(ni,nStrandNode-1-m,k);
+	for (int k=0; k<nq; k++) dqn[k] /= deltaN;
+	for (int k=0; k<nqa; k++) dqan[k] = 0.;
+	for (int m=0; m<nBndVis; m++)
+	  for (int k=0; k<nqa; k++) dqan[k] -= vcn4[m]*qa(ni,nStrandNode-1-m,k);
+	for (int k=0; k<nqa; k++) dqan[k] /= deltaN;
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &dqn[0],&dqan[0],&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += Aj(k,l);
+
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) Ads(n,i,k,l) += Pdnr*A(k,l);
+      }
+
+
+  else
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<meshOrder+1; i++){ // ith point in the element
+	ni   = surfElem(n,i);
+	jac1 = jac(n,i,j);
+	xs1  = xs(n,i,j);
+	ys1  = ys(n,i,j);
+	xn1  = xn(ni,j);
+	yn1  = yn(ni,j);
+	
+	// j-1 contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j-1,0),&qa(ni,j-1,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l)  = .5*Aj(k,l);
+	
+	// j+1 contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j+1,0),&qa(ni,j+1,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += .5*Aj(k,l);
+	
+	// j contribution
+	sys->lhsVisFluxNCoeffJacobian(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+				      &q(ni,j,0),&qa(ni,j,0),
+				      &q(ni,j,0),&qa(ni,j,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) -= Aj(k,l);
+	
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j,0),&qa(ni,j,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l)  =-bnj(k,l);
+	
+	jac1 = jac(n,i,j-1);
+	xs1  = xs(n,i,j-1);
+	ys1  = ys(n,i,j-1);
+	xn1  = xn(ni,j-1);
+	yn1  = yn(ni,j-1);
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j-1,0),&qa(ni,j-1,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l) -= .5*bnj(k,l);
+	
+	jac1 = jac(n,i,j+1);
+	xs1  = xs(n,i,j+1);
+	ys1  = ys(n,i,j+1);
+	xn1  = xn(ni,j+1);
+	yn1  = yn(ni,j+1);
+	sys->rhsVisFluxNCoeff(1,&jac1,&xs1,&ys1,&xn1,&yn1,
+			      &q(ni,j+1,0),&qa(ni,j+1,0),&bnj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nqaGradQa; l++) bn(k,l) -= .5*bnj(k,l);
+	
+	matmul(nq,nqaGradQa,nq,&bn(0,0),&G(ni,0,0),&Aj(0,0));
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) A(k,l) += Aj(k,l);
+	
+	// add to LHS Jacobian
+	for (int k=0; k<nq; k++)
+	  for (int l=0; l<nq; l++) Ads(n,i,k,l) -= dnrr*A(k,l);
+      }
+
+
+  // clean up
+  G.deallocate();
+  A.deallocate();
+  Aj.deallocate();
+  bn.deallocate();
+  bnj.deallocate();
+}

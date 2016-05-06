@@ -1,0 +1,30 @@
+! input file for the strand meshing layer
+&strandGen2d
+!~ 	surfaceMesh	='89x41bump.p2dfmt' !name of surface mesh file
+!~ 	surfaceMesh	='449x129.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='plate35x25.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='ShaunsBumptrial.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='4412_1025.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='0012_160.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='ShaunsPlate_88.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='Shauns_Trialbumpcsv4.strand2d' !name of surface mesh file
+!~ 	surfaceMesh	='FlatPlate_400pts_1.strand2d' !name of surface mesh file
+	surfaceMesh	='FlatPlate_200pts_1.strand2d' !name of surface mesh file
+!	surfaceMesh	='backstep_16.strand2d' !name of surface mesh file
+	nPartitions	= 1 !number of partitions for parallel runs
+	iwrite		= 2 !0 = write no Tecplot grid files
+			    !1 = write just Tecplot grid file of the surface
+			    !2 = write Tecplot grid file of volume and surface
+        strandDist      = 3 !1 = uniform
+			    !2 = geometric
+			    !3 = hyperbolic tangent
+	nPtsPerStrand	= 32 !set to 0 in order to use stretchRatio instead
+	nfringe		= 2
+        stretchRatio    = 1.2 !spacing ratio between adjacent points
+        wallspacing     = .0008
+        strandLength    = 5.
+        deltaSmooth     =-.0001 !smoothing threshold (negative = no smoothing)
+        trimType        = 0 !0 = no strand clipping
+	angle		= 45.	!minimum sharp corner angle (negative = no detection)
+	smax		= 32	!max number of strands to add
+/

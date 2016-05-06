@@ -1,0 +1,240 @@
+/**
+ * \brief
+ * Class SolutionType is the base class for various
+ * solution initialization schemes.
+ * \author
+ * Aaron Katz
+ * \version
+ * 1.0
+ * \date
+ * 2012-09-13
+ */
+
+
+#ifndef included_SolutionType
+#define included_SolutionType
+
+#include "PHYSICS_defs.h"
+#include "State.h"
+#include "Transport.h"
+
+
+class SolutionType
+{
+ public:
+
+  /**
+   * \brief
+   * Constructor for the SolutionType class.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-11
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C SolutionType
+   */
+  SolutionType();
+
+  /**
+   * \brief
+   * Destructor for the SolutionType class.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-13
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C ~SolutionType
+   */
+  ~SolutionType();
+
+  /**
+   * \brief
+   * Reads inputs and allocates/initializes the SolutionType class objects.
+   * \param nq Dimension of q (number of equations).
+   * \param ndim Number of spatial dimensions.
+   * \param inputFile Name of Solution input file.
+   * \param state Pointer to the current State instance.
+   * \param transport Pointer to the current Transport instance.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-27
+   * \par Further Documentation:
+   */
+  virtual void initialize(const int& nq,
+			  const int& ndim,
+			  const string& inputFile,
+			  State* state,
+			  Transport* transport)=0;
+
+  /**
+   * \brief
+   * Returns a pointer to the array of solution reference values.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C getRefValues
+   */
+  double* getRefValues();
+
+  /**
+   * \brief
+   * Returns the q vector given the location in space.
+   * \param npts Number of points at which to return q.
+   * \param x Coordinates of q.
+   * \param q q-vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   */
+  virtual void getQ(const int& npts,
+		    const double* x,
+		    double* q)=0;
+
+  /**
+   * \brief
+   * Returns the x-derivative of the q vector given the location in space.
+   * \param npts Number of points at which to return qx.
+   * \param x Coordinates of qx.
+   * \param qx qx-vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C getQx
+   */
+  virtual void getQx(const int& npts,
+		     const double* x,
+		     double* qx);
+
+  /**
+   * \brief
+   * Returns the y-derivative of the q vector given the location in space.
+   * \param npts Number of points at which to return qy.
+   * \param y Coordinates of qy.
+   * \param qy qy-vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C getQy
+   */
+  virtual void getQy(const int& npts,
+		     const double* x,
+		     double* qy);
+
+  /**
+   * \brief
+   * Returns the second x-derivative of the q vector given the location
+   * in space.
+   * \param npts Number of points at which to return qxx.
+   * \param x Coordinates of qxx.
+   * \param qxx qxx-vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C getQxx
+   */
+  virtual void getQxx(const int& npts,
+		      const double* x,
+		      double* qxx);
+
+  /**
+   * \brief
+   * Returns the mixed xy-derivative of the q vector given the location
+   * in space.
+   * \param npts Number of points at which to return qxy.
+   * \param x Coordinates of qxy.
+   * \param qxy qxy-vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C getQxy
+   */
+  virtual void getQxy(const int& npts,
+		      const double* x,
+		      double* qxy);
+
+  /**
+   * \brief
+   * Returns the second y-derivative of the q vector given the location
+   * in space.
+   * \param npts Number of points at which to return qyy.
+   * \param x Coordinates of qyy.
+   * \param qyy qyy-vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/Solution/SolutionType.C getQyy
+   */
+  virtual void getQyy(const int& npts,
+		      const double* x,
+		      double* qyy);
+
+  /**
+   * \brief
+   * Deletes memory.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-27
+   * \par Further Documentation:
+   */
+  virtual void finalize()=0;
+
+
+ protected:
+
+  int nq;
+  int ndim;
+  double* rValue;
+  State* state;
+  Transport* transport;
+
+
+ private:
+
+};
+#endif

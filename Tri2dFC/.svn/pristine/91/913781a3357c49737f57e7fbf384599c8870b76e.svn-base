@@ -1,0 +1,98 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::initialize(const int& level0,
+				    const int& order0,
+				    const int& nTri0,
+				    const int& nNode0,
+				    const int& nCompBd0,
+				    const int& nEdgeBd0,
+				    int** tri0,
+				    const double* x0,
+				    const int* edgeBd0)
+{
+  // copy level, order, component, and global grid info
+  level    = level0;
+  order    = order0;
+  nTriG    = nTri0;
+  nNodeG   = nNode0;
+  nEdgeBdG = nEdgeBd0;
+  if (nCompBd0+1 != nCompBd){ // I added a "nothing" condition
+    cout << "\nNumber of boundary patches in the input file not consistent "
+	 << "with the mesh.\n" << endl;
+    exit(0);
+  }
+  nCompBd  = nCompBd0+1; // I added a "nothing" condition
+
+
+  // check to make sure the given mesh level can support the order of accuracy
+  if      (level == 0){
+    if (order > 3){
+      cout << "\n*** Order must be lower than 4 on level 0 ***" << endl;
+      exit(0);
+    }
+  }
+  else if (level == 1){
+    if (order > 2){
+      cout << "\n*** Order must be lower than 3 on level 1 ***" << endl;
+      exit(0);
+    }
+  }
+  else if (level == 2){
+    if (order > 2){
+      cout << "\n*** Order must be lower than 3 on level 1 ***" << endl;
+      exit(0);
+    }
+  }
+  else{
+    cout << "\n*** Cannot use the multigrid level requested ***" << endl;
+    exit(0);
+  }
+
+
+  // allocate and copy global mesh data from mesh manager
+  triG = new int*[nTriG];
+  xG.allocate(nNodeG,2);
+  edgeBdG.allocate(nEdgeBdG,3);
+
+  int m,k,ord;
+  for (int n=0; n<nTriG;  n++){
+    ord       = tri0[n][0];
+    k         =(ord+2)*(ord+1)/2;
+    triG[n]   = new int[k+1];
+    for (int m=0; m<k+1; m++) triG[n][m] = tri0[n][m];
+  }
+
+  m = 0;
+  for (int n=0; n<nNodeG; n++)
+    for (int k=0; k<2; k++) xG(n,k) = x0[m++];
+
+  m = 0;
+  for (int n=0; n<nEdgeBdG; n++)
+    for (int k=0; k<3; k++) edgeBdG(n,k) = edgeBd0[m++];
+
+
+  // form all grid connectivity
+  connectivity();
+
+
+  // compute all grid metrics
+  metric();
+
+
+  // allocate and initialize solution variables
+  prepare();
+
+
+  // deallocate the global mesh since it is not needed anymore
+  if (triG){
+    for (int n=0; n<nTriG; n++){
+      if (triG[n]) delete [] triG[n];
+      triG[n] = NULL;
+    }
+    delete [] triG;
+    triG = NULL;
+  }
+  xG.deallocate();
+  edgeBdG.deallocate();
+}

@@ -1,0 +1,46 @@
+#include "StrandSPLam.h"
+
+
+void StrandSPLam::rhsVisFlux(const int& npts,
+			     const double* A,
+			     const double* q,
+			     const double* qa,
+			     const double* qx,
+			     const double* qy,
+			     const double* qax,
+			     const double* qay,
+			     double* f)
+{
+  int iq,iqa,iA;
+  double Ax,Ay,ue,ve,me,ke,ux,uy,vx,vy,tx,ty,dd,sxx,sxy,syx,syy,qxx,qyy;
+  for (int n=0; n<npts; n++){
+    iq   = nq *n;
+    iqa  = nqa*n;
+    iA   = ndim*n;
+    Ax   = A[iA  ];
+    Ay   = A[iA+1];
+    ue   = qa[iqa+1];
+    ve   = qa[iqa+2];
+    me   = qa[iqa+4];
+    ke   = qa[iqa+5];
+    ux   = qax[iqa+1];
+    uy   = qay[iqa+1];
+    vx   = qax[iqa+2];
+    vy   = qay[iqa+2];
+    tx   = qax[iqa+3];
+    ty   = qay[iqa+3];
+    dd   =(ux+vy)/3.;
+
+    sxx  = 2.*me*(ux-dd);
+    sxy  =    me*(uy+vx);
+    syx  = sxy;
+    syy  = 2.*me*(vy-dd);
+    qxx  =-ke*tx;
+    qyy  =-ke*ty;
+
+    f[iq  ] = 0.;
+    f[iq+1] = Ax*sxx+Ay*syx;
+    f[iq+2] = Ax*sxy+Ay*syy;
+    f[iq+3] = Ax*(ue*sxx+ve*sxy-qxx)+Ay*(ue*syx+ve*syy-qyy);
+  }
+}

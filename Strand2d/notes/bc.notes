@@ -1,0 +1,37 @@
+default:
+dirichlet
+1.
+1.
+1.
+1.
+1.
+
+bctype:
+inviscidWall
+patches:
+1
+2
+3
+
+bctype:
+farField
+patches:
+4
+5
+
+
+
+
+Description of file:
+
+Allowed boundary types: dirichlet, inviscidWall, viscousWall, farField.
+Dirichlet boundary conditions are followed by the values of Q(1:5) along
+the boundary. If using one of the exact of MMS solutions, these values
+are overwritten with the exact or MMS solution and held fixed.
+
+A default boundary condition may be specified with "default:"
+
+Boundary specifications use the key word "bctype:" followed by the type,
+followed by "patches:", followed by a list of patch numbers.
+
+

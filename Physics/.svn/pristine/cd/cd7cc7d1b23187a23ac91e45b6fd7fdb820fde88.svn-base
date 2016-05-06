@@ -1,0 +1,105 @@
+/**
+ * \brief
+ * Class StateIdealGas holds the data and specifies the operations for
+ * the ideal gas equation of state.
+ * \author
+ * Aaron Katz
+ * \version
+ * 1.0
+ * \date
+ * 2012-09-13
+ */
+
+
+#ifndef included_StateIdealGas
+#define included_StateIdealGas
+
+#include "PHYSICS_defs.h"
+#include "State.h"
+
+
+class StateIdealGas: public State
+{
+
+ public:
+
+  /**
+   * \brief
+   * Constructor for the StateIdealGas class.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-13
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/State/StateIdealGas.C StateIdealGas
+   */
+  StateIdealGas();
+
+  /**
+   * \brief
+   * Destructor for the StateIdealGas class.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-13
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/State/StateIdealGas.C ~StateIdealGas
+   */
+  ~StateIdealGas();
+
+  /**
+   * \brief
+   * Reads inputs and initializes the StateIdealGas class objects.
+   * \param comp Component number of this instance of ideal gas.
+   * \param inputFile Name of State input file.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-13
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/State/StateIdealGas.C initialize
+   */
+  void initialize(const int& comp,
+		  const string& inputFile);
+
+  /**
+   * \brief
+   * Returns density and internal energy given pressure and temperature.
+   * \param npts Number of points to operate on.
+   * \param p Pressure.
+   * \param t Temperature.
+   * \param rho Density.
+   * \param e Internal energy.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-09-13
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/State/StateIdealGas.C getDensityEnergy
+   */
+  void getDensityEnergy(const int& npts,
+			const double* p,
+			const double* t,
+			double* rho,
+			double* e);
+
+
+ private:
+
+  double rGas;
+  double gamma;
+
+};
+#endif

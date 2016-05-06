@@ -1,0 +1,204 @@
+#include "StrandBlockSolver.h"
+
+
+void StrandBlockSolver::initialize(const int& mglevel)
+{
+  int i,j,k;
+  i = nPstr+1;
+  j = nPstr+2;
+  k = nFaces+nBedges;
+  if (mglevel == 0) rms.allocate(nq);
+  xvu.allocate(i,nFaces);
+  xvs.allocate(i,nEdges);
+  nvu.allocate(ndim,2,nFaces);
+  nvs.allocate(ndim,i,nBedges);
+
+  for (int n=0; n<nFaces; n++)
+    for (int j=0; j<nPstr+1; j++) xvu(j,n) = 0.;
+  for (int n=0; n<nEdges; n++)
+    for (int j=0; j<nPstr+1; j++) xvs(j,n) = 0.;
+  for (int n=0; n<nFaces; n++){
+    nvu(0,0,n) = 0.;
+    nvu(1,0,n) = 0.;
+    nvu(0,1,n) = 0.;
+    nvu(1,1,n) = 0.;
+  }
+  for (int n=0; n<nBedges; n++)
+    for (int j=0; j<nPstr+1; j++){
+      nvs(0,j,n) = 0.;
+      nvs(1,j,n) = 0.;
+    }
+
+
+  // unsteady data
+  i = nPstr+1;
+  j = nPstr+2;
+  k = nFaces+nBedges;
+  if (nSteps > 0 && mglevel == 0){
+    x0.allocate(ndim,i,nNodes);
+    x1.allocate(ndim,i,nNodes);
+    x2.allocate(ndim,i,nNodes);
+    v1.allocate(j,k);
+    v2.allocate(j,k);
+    q1.allocate(nq,j,k);
+    q2.allocate(nq,j,k);
+    dvu.allocate(i,nFaces);
+    dvs.allocate(i,nEdges);
+
+    for (int n=0; n<nNodes; n++)
+      for (int j=0; j<nPstr+1; j++){
+	x0(0,j,n) = 0.;
+	x0(1,j,n) = 0.;
+	x1(0,j,n) = 0.;
+	x1(1,j,n) = 0.;
+	x2(0,j,n) = 0.;
+	x2(1,j,n) = 0.;
+      }
+    for (int n=0; n<nFaces+nBedges; n++)
+      for (int j=0; j<nPstr+2; j++){
+	v1(j,n) = 0.;
+	v2(j,n) = 0.;
+      }
+    for (int n=0; n<nFaces; n++)
+      for (int j=0; j<nPstr+1; j++) dvu(j,n) = 0.;
+    for (int n=0; n<nEdges; n++)
+      for (int j=0; j<nPstr+1; j++) dvs(j,n) = 0.;
+  }
+
+  // solver data
+  i = nPstr+1;
+  j = nPstr+2;
+  k = nFaces+nBedges;
+  q.allocate(nq,j,k);
+  qa.allocate(nqa,j,k);
+  q0.allocate(nq,j,k);
+  if (mglevel == 0) qp.allocate(nq,i,nNodes);
+  if (mglevel == 0) qap.allocate(nqa,i,nNodes);
+  if (mglevel == 0) qx.allocate(nq,ndim,j,k);
+  if (mglevel == 0) qax.allocate(nqa,ndim,j,k);
+  r.allocate(nq,j,k);
+  dq.allocate(nq,j,k);
+  s.allocate(nq,j,k);
+  dt.allocate(j,k);
+  if (inviscid > 0) radi.allocate(j,k);
+  if (viscous > 0) radv.allocate(j,k);
+  if (source > 0) rads.allocate(j,k);
+  dd.allocate(nq,nq,j,k);
+  dm.allocate(nq,nq,j,k);
+  dp.allocate(nq,nq,j,k);
+  if (mglevel > 0) fwc.allocate(nq,j,k);
+  if (mglevel == 0) lims.allocate(nq,i,nEdges);
+  if (mglevel == 0) limu.allocate(nq,j,nFaces);
+
+
+  // read q data from restart
+  if (restartStep > 0){
+    cout << "\n*** restart capability not yet implemented in initialize.C ***"
+	 << endl;
+    exit(0);
+  }
+
+  // initialize q, qp, and qx on fine MG levels,
+  // including distance to the wall (for now, just use strand length)
+  if (mglevel == 0){
+    int j=nPstr+2,n=nFaces+nBedges; // just uses strand length
+    double dx,dy;
+    Array2D<double> dw(j,n);
+    for (int n=0; n<nFaces+nBedges; n++){
+    for (int j=0; j<nPstr+2; j++){
+      dx = xc(0,j,n)-xc(0,0,n);
+      dy = xc(1,j,n)-xc(1,0,n);
+      dw(j,n) = sqrt(dx*dx+dy*dy);
+    }}
+    int npts =(nPstr+2)*(nFaces+nBedges);
+    sys->initWallDist(npts,
+		      &dw(0,0),
+		      &qa(0,0,0));
+
+    /*
+    int j=nPstr+2,n=nFaces+nBedges; // brute force search
+    double dx,dy,xn,yn;
+    Array2D<double> dw(j,n);
+    for (int n=0; n<nFaces+nBedges; n++)
+      for (int j=0; j<nPstr+2; j++) dw(j,n) = 1.e14;
+    for (int n=0; n<nFaces+nBedges; n++){
+    for (int j=0; j<nPstr+2; j++){
+      xn = xc(0,j,n);
+      yn = xc(1,j,n);
+    for (int n=0; n<nFaces+nBedges; n++){
+      dx = xn-xc(0,0,n);
+      dy = yn-xc(1,0,n);
+      dw(j,n) = min(dw(j,n),sqrt(dx*dx+dy*dy));
+    }}}
+    int npts =(nPstr+2)*(nFaces+nBedges);
+    sys->initWallDist(npts,
+		      &dw(0,0),
+		      &qa(0,0,0));
+    */
+
+    dw.deallocate();
+    sys->initFlow(npts,
+		  &xc(0,0,0),
+		  &q(0,0,0));
+    sys->stepQAdd(npts,
+		  &q(0,0,0),
+		  &qa(0,0,0));
+    for (int n=0; n<nFaces+nBedges; n++)
+      for (int j=0; j<nPstr+2; j++)
+	for (int m=0; m<ndim; m++){
+	  for (int k=0; k<nq;  k++) qx (k,m,j,n) = 0.;
+	  for (int k=0; k<nqa; k++) qax(k,m,j,n) = 0.;
+	}
+    nodalQ(mglevel);
+    nodalQa(mglevel);
+    gradQ(mglevel);
+    gradQa(mglevel);
+    limit(mglevel);
+  }
+
+  // initialize any MMS source terms at interior and boundary dofs
+  if (mglevel == 0){
+    int j,npts;
+    npts =(nPstr+2)*(nFaces+nBedges);
+    sys->initSource(npts,
+		    &xc(0,0,0),
+		    &s(0,0,0));
+
+    // surface boundaries
+    npts = 1;
+    j    = 0;
+    for (int n=0; n<nFaces-nGfaces; n++){
+      sys->initSource(npts,
+		      &fTag(n),
+		      &xc(0,j,n),
+		      &s(0,j,n));
+    }
+
+    // tip boundaries if stand alone solve
+    if (standAlone == 1){
+      npts = 1;
+      j    = nPstr+1;
+      int eTag = nBpatches-1; //tip tag
+      for (int n=0; n<nFaces-nGfaces; n++){
+	sys->initSource(npts,
+			&eTag,
+			&xc(0,j,n),
+			&s(0,j,n));
+      }
+    }
+
+    // unstructured boundaries
+    npts = 1;
+    int c1,c2,k=0;
+    for (int n=nEdges-nBedges; n<nEdges; n++){
+      c1 = edge(0,n);
+      c2 = edge(1,n);
+    for (int j=1; j<fClip(c2)+1; j++)
+      sys->initSource(npts,
+		      &bTag(k),
+		      &xc(0,j,c2),
+		      &s(0,j,c2));
+    k++;
+    }
+  }
+}

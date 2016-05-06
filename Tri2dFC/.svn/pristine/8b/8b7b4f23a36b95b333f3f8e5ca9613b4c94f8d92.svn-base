@@ -1,0 +1,58 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::prepare()
+{
+  rms.allocate(nq);
+  q.allocate(nNode,nq);
+  qa.allocate(nNode,nqa);
+  q0.allocate(nNode,nq);
+  if (level > 0) fwc.allocate(nNode,nq);
+  qn.allocate(nNode,nq);
+  if (nSteps > 0) qt.allocate(timeAcc,nNode,nq);
+  dt.allocate(nNode);
+  r.allocate(nNode,nq);
+  r.set(0.);
+  d.allocate(nNode,nq);
+  d.set(0.);
+  dn.allocate(nNode,nq);
+  dn.set(0.);
+  if (sourceMMS == 1){
+    s.allocate(nNode,nq);
+    s.set(0.);
+  }
+  qx.allocate(nNode,nq);
+  qy.allocate(nNode,nq);
+  qax.allocate(nNode,nqa);
+  qay.allocate(nNode,nqa);
+  lim.allocate(nEdge,nq);
+
+
+  // read q data from restart
+  if (restartStep > 0){
+    cout << "\n*** restart capability not yet implemented in prepare.C ***"
+         << endl;
+    exit(0);
+  }
+
+
+  // initialize q and qa at interior and flux point locations
+  sys->initFlow(nNode,
+                &x(0,0),
+                &q(0,0));
+  sys->stepQAdd(nNode,
+                &q(0,0),
+                &qa(0,0));
+
+
+  // compute distance to the wall
+  cout << "\n*** wall distance not computed yet in prepare.C ***" << endl;
+
+
+  // initialize MMS source terms at interior nodes
+  if (sourceMMS == 1)
+    sys->initSource(nNode,
+                    &x(0,0),
+                    &s(0,0));
+}

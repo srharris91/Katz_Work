@@ -1,0 +1,169 @@
+//
+// File:        StrandBlock.h
+// Package:     STRANDGEN
+//              Parallel Infrastructure for Cartesian & Strand Solvers
+// Release:     $Name:  $
+// Revision:    $Revision:  $
+// Modified:    $Date:  $
+// Description: StrandBlock class holds concise data for mesh block
+//              
+
+/*!
+ * Class StrandBlock defines concisely a block of strand data. It is 
+ * intended to contain a small amount of data so the entire array of 
+ * all strand blocks can be maintained by each processor.  Creation of 
+ * a strand block requires:
+ *    -\b global id                           [id]
+ *    -\b level number                        [ln]
+ *    -\b processor id                        [pid]   
+ *
+ * A separate class (StrandMeshGenerator) is required to read the mesh and
+ * partition into strandblocks.  
+ */
+
+#ifndef included_StrandBlock
+#define included_StrandBlock
+
+#include "STRANDGEN_defs.h"
+#include "io.h"
+
+class StrandBlock
+{
+public:
+
+  // constructor
+  StrandBlock();
+
+  // destructor
+  ~StrandBlock();
+
+
+  // set methods
+  void setId(const int&);
+  void setPid(const int&);
+  void setNFaces(const int&);
+  void setNNodes(const int&);
+  void setNGfaces(const int&);
+  void setNGnodes(const int&);
+  void setNBedges(const int&);
+  void setNPedges(const int&);
+  void setNPstr(const int&);
+  void setNFringe(const int&);
+  void setNScomp(const int&);
+  void setNBcomp(const int&);
+  void setNSharp(const int&);
+  void setFace(const int*);
+  void setBEdge(const int*);
+  void setPEdge(const int*);
+  void setFTag(const int*);
+  void setBTag(const int*);
+  void setFClip(const int*);
+  void setNClip(const int*);
+  void setFMap(const int*);
+  void setNMap(const int*);
+  void setEMap(const int*);
+  void setXSrf(const double*);
+  void setXStr(const double*);
+  void setPV(const double*);
+  void setBNorm(const double*);
+  void setSFlag(const int*);
+
+
+  // get methods
+  const int& getId();
+  const int& getPid();
+  const int& getNFaces();
+  const int& getNNodes();
+  const int& getNGfaces();
+  const int& getNGnodes();
+  const int& getNBedges();
+  const int& getNPedges();
+  const int& getNPstr();
+  const int& getNFringe();
+  const int& getNScomp();
+  const int& getNBcomp();
+  const int& getNSharp();
+  const int* getFace();
+  const int* getBEdge();
+  const int* getPEdge();
+        int* getFTag();
+  const int* getBTag();
+        int* getFClip();
+  const int* getNClip();
+  const int* getFMap();
+  const int* getNMap();
+  const int* getEMap();
+  const int* getSFlag();
+  const double* getXSrf();
+  const double* getXStr();
+  const double* getPV();
+  const double* getBNorm();
+  const bool& getSprouted();
+
+  // initialize the sprout procedure
+  void sproutInitialize();
+
+  // perform a strand vector smoothing iteration
+  double sproutSmooth();
+
+  // set strand clipping index (eventually done by PUNDIT)
+  void sproutClip();
+
+  // clean up and free memory used in the sprout procedure
+  void sproutFinalize();
+
+  // print block info
+  void print();
+
+  // output plot file of the mesh on this block
+  void plot();
+
+
+private:
+
+  // data for current block
+  int d_id;
+  int d_pid;
+  int d_nFaces;
+  int d_nNodes;
+  int d_nGfaces;
+  int d_nGnodes;
+  int d_nBedges;
+  int d_nPedges;
+  int d_nPstr;
+  int d_nFringe;
+  int d_nScomp;
+  int d_nBcomp;
+  int d_nSharp;
+  int* d_face;
+  int* d_bEdge;
+  int* d_pEdge;
+  int* d_fTag;
+  int* d_bTag;
+  int* d_fClip;
+  int* d_nClip;
+  int* d_fMap;
+  int* d_nMap;
+  int* d_eMap;
+  int* d_sFlag;
+  double* d_xSrf;
+  double* d_xStr;
+  double* d_pV;
+  double* d_bNorm;
+
+  // data for sprout procedure (not needed for solver, just sprout)
+  int d_nCsp1;
+  int d_nPsp1;
+  int* d_csp1;
+  int* d_csp2;
+  int* d_psp1;
+  int* d_psp2;
+  double* d_pV0;
+
+  // status logicals
+  bool d_initialized;
+  bool d_smoothed;
+  bool d_clipped;
+  bool d_sprouted;
+};
+#endif  // included_StrandBlock

@@ -1,0 +1,62 @@
+#include "StrandBlockSolver.h"
+
+
+void StrandBlockSolver::computeLHS(const int& step,
+				   const int& pseudoStep,
+				   const int& mglevel,
+				   const int& mode)
+{
+  // initialize LHS tridiagonal matrix terms
+  for (int n=0; n<nFaces+nBedges; n++){
+    for (int m=ncsc(n); m<ncsc(n+1); m++)
+      for (int j=0; j<nPstr+2; j++)
+	for (int k=0; k<nq; k++)
+	for (int l=0; l<nq; l++)
+	  bu(l,k,j,m) = 0.;
+    for (int j=0; j<nPstr+2; j++)
+      for (int k=0; k<nq; k++)
+      for (int l=0; l<nq; l++){
+	dd(l,k,j,n) = 0.;
+	dp(l,k,j,n) = 0.;
+	dm(l,k,j,n) = 0.;
+      }
+  }
+
+  // compute limiter, nodal values, and gradients
+  nodalQ(mglevel);
+  nodalQa(mglevel);
+  gradQ(mglevel);
+  gradQa(mglevel);
+  limit(mglevel);
+
+
+  // add physical and pseudo-time contributions to the left hand side
+  lhsTime(step,
+	  pseudoStep);
+
+
+  // dissipation terms
+  if (dissipation != 0) lhsDissipation();
+
+
+  // inviscid terms
+  if (inviscid != 0) lhsInviscid();
+
+
+  // viscous terms
+  if (viscous != 0){
+    if (mglevel == 0) lhsViscousFine();
+    else lhsViscousCoarse();
+  }
+
+
+  // boundary terms
+  lhsBoundary(mglevel);
+
+
+  // physical source terms
+  if (source == 1){
+    if (mglevel == 0) lhsSourceFine();
+    //else lhsSourceCoarse();
+  }
+}

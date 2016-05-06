@@ -1,0 +1,522 @@
+#include "Strand2dFCBlockSolver.h"
+
+
+void Strand2dFCBlockSolver::fdCoeffViscous()
+{
+  if (strandOrder == 1 || strandOrder == 2){ // D_2^(2,1,2)
+    /*
+    nVci     = 3;
+    nVcbNode = 2;
+    nVcb     = 3;
+    nVcb2    = 3;
+    vci.allocate(nVci,nVci);
+    vcb.allocate(nVcbNode,nVcb2,nVcb);
+    vciIndex.allocate(nVci,2);
+    vcbIndex.allocate(nVcbNode,nVcb2,2);
+
+    vci(0,0) = 0.5;
+    vci(0,1) = 0.5;
+    vci(0,2) = 0.0;
+    vciIndex(0,0) =-1;
+    vciIndex(0,1) = 0;
+
+    vci(1,0) =-0.5;
+    vci(1,1) =-1.0;
+    vci(1,2) =-0.5;
+    vciIndex(1,0) =-1;
+    vciIndex(1,1) = 1;
+
+    vci(2,0) = 0.5;
+    vci(2,1) = 0.5;
+    vci(2,2) = 0.0;
+    vciIndex(2,0) = 0;
+    vciIndex(2,1) = 1;
+
+    vcb(0,0,0) =-1.0;
+    vcb(0,0,1) =-1.0;
+    vcb(0,0,2) = 0.0;
+    vcbIndex(0,0,0) = 0;
+    vcbIndex(0,0,1) = 1;
+
+    vcb(0,1,0) = 1.0;
+    vcb(0,1,1) = 1.0;  
+    vcb(0,1,2) = 0.0;
+    vcbIndex(0,1,0) = 0;
+    vcbIndex(0,1,1) = 1;
+
+    vcb(0,2,0) = 0.0;
+    vcb(0,2,1) = 0.0;  
+    vcb(0,2,2) = 0.0;
+    vcbIndex(0,2,0) = 0;
+    vcbIndex(0,2,1) = 0;
+ 
+    vcb(1,0,0) = 0.5;
+    vcb(1,0,1) = 0.5;
+    vcb(1,0,2) = 0.0;
+    vcbIndex(1,0,0) =-1;
+    vcbIndex(1,0,1) = 0;
+
+    vcb(1,1,0) =-0.5;
+    vcb(1,1,1) =-1.0;
+    vcb(1,1,2) =-0.5;
+    vcbIndex(1,1,0) =-1;
+    vcbIndex(1,1,1) = 1;
+
+    vcb(1,2,0) = 0.5;
+    vcb(1,2,1) = 0.5;  
+    vcb(1,2,2) = 0.0;
+    vcbIndex(1,2,0) = 0;
+    vcbIndex(1,2,1) = 1;
+    */
+
+
+    // dimensions
+    int nBnd=2,nMax=3;
+    if (nStrandNode < nMax){
+      cout << "\nPlease choose nStrandNode greater than "
+	   << nMax << "." << endl;
+      exit(0);
+    }
+
+    vcn2 = new int*[nStrandNode];
+    for (int j=0; j<nStrandNode; j++) vcn2[j] = new int[2];
+
+    vcn2[0][0] = 0; //root stencils
+    vcn2[0][1] = 2;
+
+    vcn2[1][0] = 0;
+    vcn2[1][1] = 3;
+
+    for (int j=nBnd; j<nStrandNode-nBnd; j++){ //interior stencils
+      vcn2[j][0] = j-1;
+      vcn2[j][1] = 3;
+    }
+
+    int i=nBnd-1,j1,nj,l;
+    for (int j=nStrandNode-nBnd; j<nStrandNode; j++){ //tip stencils
+      j1         = vcn2[i  ][0];
+      nj         = vcn2[i--][1];
+      vcn2[j][0] = nStrandNode-(j1+nj);
+      vcn2[j][1] = nj;
+    }
+
+    vcn3 = new int**[nStrandNode];
+    for (int j=0; j<nStrandNode; j++){
+      nj      = vcn2[j][1];
+      vcn3[j] = new int*[nj];
+      for (int m=0; m<nj; m++) vcn3[j][m] = new int[2];
+    }
+
+    vcn3[0][0][0] = 0; //root stencils
+    vcn3[0][0][1] = 2;
+
+    vcn3[0][1][0] = 0;
+    vcn3[0][1][1] = 2;
+
+    vcn3[1][0][0] = 0;
+    vcn3[1][0][1] = 2;
+
+    vcn3[1][1][0] = 0;
+    vcn3[1][1][1] = 3;
+
+    vcn3[1][2][0] = 1;
+    vcn3[1][2][1] = 2;
+
+    for (int j=nBnd; j<nStrandNode-nBnd; j++){ //interior stencils
+      vcn3[j][0][0] = j-1;
+      vcn3[j][0][1] = 2;
+      vcn3[j][1][0] = j-1;
+      vcn3[j][1][1] = 3;
+      vcn3[j][2][0] = j;
+      vcn3[j][2][1] = 2;
+    }
+
+    int k,l1,nl;
+    i = nBnd-1;
+    for (int j=nStrandNode-nBnd; j<nStrandNode; j++){ //tip stencils
+      j1 = vcn2[i][0];
+      nj = vcn2[i][1];
+      k  = nj-1;
+      for (int m=0; m<nj; m++){
+	l1            = vcn3[i][k  ][0];
+	nl            = vcn3[i][k--][1];
+	vcn3[j][m][0] = nStrandNode-(l1+nl);
+	vcn3[j][m][1] = nl;
+      }
+      i--;
+    }
+
+    // coefficients
+    vcn1 = new double**[nStrandNode];
+    for (int j=0; j<nStrandNode; j++){
+      nj      = vcn2[j][1];
+      vcn1[j] = new double*[nj];
+      for (int m=0; m<nj; m++){
+	nl         = vcn3[j][m][1];
+	vcn1[j][m] = new double[nl];
+      }}
+
+    vcn1[0][0][0] =-1.; //root coefficients
+    vcn1[0][0][1] =-1.;
+
+    vcn1[0][1][0] = 1.;
+    vcn1[0][1][1] = 1.;
+
+    vcn1[1][0][0] = .5;
+    vcn1[1][0][1] = .5;
+
+    vcn1[1][1][0] =-.5;
+    vcn1[1][1][1] =-1.;
+    vcn1[1][1][2] =-.5;
+
+    vcn1[1][2][0] = .5;
+    vcn1[1][2][1] = .5;
+
+    for (int j=nBnd; j<nStrandNode-nBnd; j++){ //interior coefficients
+      vcn1[j][0][0] = .5;
+      vcn1[j][0][1] = .5;
+      
+      vcn1[j][1][0] =-.5;
+      vcn1[j][1][1] =-1.;
+      vcn1[j][1][2] =-.5;
+      
+      vcn1[j][2][0] = .5;
+      vcn1[j][2][1] = .5;
+    }
+
+    int p;
+    i = nBnd-1;
+    for (int j=nStrandNode-nBnd; j<nStrandNode; j++){ //tip coefficients
+      j1 = vcn2[i][0];
+      nj = vcn2[i][1];
+      k  = nj-1;
+      for (int m=0; m<nj; m++){
+	l1 = vcn3[i][k][0];
+	nl = vcn3[i][k][1];
+	p  = nl-1;
+	for (int l=0; l<nl; l++) vcn1[j][m][l] = vcn1[i][k][p--];
+	k--;
+      }
+      i--;
+    }
+  }
+
+
+  else if (strandOrder == 3){ // D_2^(4,2,4)
+    // dimensions
+    int nBnd=6,nMax=8;
+    if (nStrandNode < nMax){
+      cout << "\nPlease choose nStrandNode greater than "
+	   << nMax << "." << endl;
+      exit(0);
+    }
+
+    vcn2 = new int*[nStrandNode];
+    for (int j=0; j<nStrandNode; j++) vcn2[j] = new int[2];
+
+    for (int j=0; j<nBnd; j++){ //root stencils
+      vcn2[j][0] = 0;
+      vcn2[j][1] = nMax;
+    }
+
+    for (int j=nBnd; j<nStrandNode-nBnd; j++){ //interior stencils
+      vcn2[j][0] = j-2;
+      vcn2[j][1] = 5;
+    }
+
+    int i=nBnd-1,j1,nj,l;
+    for (int j=nStrandNode-nBnd; j<nStrandNode; j++){ //tip stencils
+      j1         = vcn2[i  ][0];
+      nj         = vcn2[i--][1];
+      vcn2[j][0] = nStrandNode-(j1+nj);
+      vcn2[j][1] = nj;
+    }
+
+    vcn3 = new int**[nStrandNode];
+    for (int j=0; j<nStrandNode; j++){
+      nj      = vcn2[j][1];
+      vcn3[j] = new int*[nj];
+      for (int m=0; m<nj; m++) vcn3[j][m] = new int[2];
+    }
+
+    for (int j=0; j<nBnd; j++){ //root stencils
+      nj = vcn2[j][1];
+      for (int m=0; m<nj; m++){
+	vcn3[j][m][0] = 0;
+	vcn3[j][m][1] = nMax;
+      }}
+
+    for (int j=nBnd; j<nStrandNode-nBnd; j++){ //interior stencils
+      vcn3[j][0][0] = j-2;
+      vcn3[j][0][1] = 3;
+      vcn3[j][1][0] = j-2;
+      vcn3[j][1][1] = 4;
+      vcn3[j][2][0] = j-2;
+      vcn3[j][2][1] = 5;
+      vcn3[j][3][0] = j-1;
+      vcn3[j][3][1] = 4;
+      vcn3[j][4][0] = j;
+      vcn3[j][4][1] = 3;
+    }
+
+    int k,l1,nl;
+    i = nBnd-1;
+    for (int j=nStrandNode-nBnd; j<nStrandNode; j++){ //tip stencils
+      j1 = vcn2[i][0];
+      nj = vcn2[i][1];
+      k  = nj-1;
+      for (int m=0; m<nj; m++){
+	l1            = vcn3[i][k  ][0];
+	nl            = vcn3[i][k--][1];
+	vcn3[j][m][0] = nStrandNode-(l1+nl);
+	vcn3[j][m][1] = nl;
+      }
+      i--;
+    }
+
+    // coefficients
+    vcn1 = new double**[nStrandNode];
+    for (int j=0; j<nStrandNode; j++){
+      nj      = vcn2[j][1];
+      vcn1[j] = new double*[nj];
+      for (int m=0; m<nj; m++){
+	nl         = vcn3[j][m][1];
+	vcn1[j][m] = new double[nl];
+	for (int l=0; l<nl; l++) vcn1[j][m][l] = 0.;
+      }}
+
+    //M11
+    vcn1[0][0][0] =-12./17.;
+    vcn1[0][0][1] =-59./192.;
+    vcn1[0][0][2] =-27010400129./345067064608.;
+    vcn1[0][0][3] =-69462376031./2070402387648.;
+
+    //M12
+    vcn1[0][1][0] = 59./68.;
+    vcn1[0][1][2] = 6025413881./21126554976.;
+    vcn1[0][1][3] = 537416663./7042184992.;
+
+    //M13
+    vcn1[0][2][0] =-2./17.;
+    vcn1[0][2][1] = 59./192.;
+    vcn1[0][2][2] =-2083938599./8024815456.;
+    vcn1[0][2][3] =-213318005./16049630912.;
+
+    //M14
+    vcn1[0][3][0] =-3./68.;
+    vcn1[0][3][2] = 1244724001./21126554976.;
+    vcn1[0][3][3] =-752806667./21126554976.;
+
+    //M15
+    vcn1[0][4][2] =-49579087./10149031312.;
+    vcn1[0][4][3] = 49579087./10149031312.;
+
+    //M16
+    vcn1[0][5][2] =-1./784.;
+    vcn1[0][5][3] = 1./784.;
+
+
+    //M22
+    vcn1[1][1][0] =-3481./3264.;
+    vcn1[1][1][2] =-9258282831623875./7669235228057664.;
+    vcn1[1][1][3] =-236024329996203./1278205871342944.;
+
+    //M23
+    vcn1[1][2][0] = 59./408.;
+    vcn1[1][2][2] = 29294615794607./29725717938208.;
+    vcn1[1][2][3] = 2944673881023./29725717938208.;
+
+    //M24
+    vcn1[1][3][0] = 59./1088.;
+    vcn1[1][3][2] =-260297319232891./2556411742685888.;
+    vcn1[1][3][3] = 60834186813841./1278205871342944.;
+
+    //M25
+    vcn1[1][4][2] = 1328188692663./37594290333616.;
+    vcn1[1][4][3] =-1328188692663./37594290333616.;
+
+    //M26
+    vcn1[1][5][2] = 8673./2904112.;
+    vcn1[1][5][3] =-8673./2904112.;
+
+
+    //M33
+    vcn1[2][2][0] =-1./51.;
+    vcn1[2][2][1] =-59./192.;
+    vcn1[2][2][2] =-378288882302546512209./270764341349677687456.;
+    vcn1[2][2][3] =-13777050223300597./26218083221499456.;
+    vcn1[2][2][4] =-564461./13384296;
+
+    //M34
+    vcn1[2][3][0] =-1./136.;
+    vcn1[2][3][2] = 4836340090442187227./5525802884687299744.;
+    vcn1[2][3][3] = 17220493277981./89177153814624.;
+    vcn1[2][3][4] = 125059./743572;
+
+    //M35
+    vcn1[2][4][2] =-1613976761032884305./7963657098519931984.;
+    vcn1[2][4][3] = 10532412077335./42840005263888.;
+    vcn1[2][4][4] =-564461./4461432.;
+
+    //M36
+    vcn1[2][5][2] =-33235054191./26452850508784.;
+    vcn1[2][5][3] = 960119./1280713392.;
+    vcn1[2][5][4] = 3391./6692148.;
+
+
+    //M44
+    vcn1[3][3][0] =-3./1088.;
+    vcn1[3][3][2] =-507284006600757858213./475219048083107777984.;
+    vcn1[3][3][3] =-1950062198436997./3834617614028832.;
+    vcn1[3][3][4] =-1869103./2230716.;
+    vcn1[3][3][5] =-1./24.;
+
+    //M45
+    vcn1[3][4][2] = 4959271814984644613./20965546238960637264.;
+    vcn1[3][4][3] = 15998714909649./37594290333616.;
+    vcn1[3][4][4] = 375177./743572.;
+    vcn1[3][4][5] = 1./6.;
+
+    //M46
+    vcn1[3][5][2] =-752806667./539854092016.;
+    vcn1[3][5][3] =-1063649./8712336.;
+    vcn1[3][5][4] = 368395./2230716.;
+    vcn1[3][5][5] =-1./8.;
+
+
+    //M55
+    vcn1[4][4][2] =-8386761355510099813./128413970713633903242.;
+    vcn1[4][4][3] =-2224717261773437./2763180339520776.;
+    vcn1[4][4][4] =-280535./371786.;
+    vcn1[4][4][5] =-5./6.;
+    vcn1[4][4][6] =-1./24.;
+
+    //M56
+    vcn1[4][5][2] = 13091810925./13226425254392.;
+    vcn1[4][5][3] = 35039615./213452232.;
+    vcn1[4][5][4] = 1118749./2230716.;
+    vcn1[4][5][5] = 1./2.;
+    vcn1[4][5][6] = 1./6.;
+
+    //M57
+    vcn1[4][6][4] =-1./8.;
+    vcn1[4][6][5] = 1./6.;
+    vcn1[4][6][6] =-1./8.;
+
+
+    //M66
+    vcn1[5][5][2] =-660204843./13226425254392.;
+    vcn1[5][5][3] =-3290636./80044587.;
+    vcn1[5][5][4] =-5580181./6692148.;
+    vcn1[5][5][5] =-3./4.;
+    vcn1[5][5][6] =-5./6.;
+    vcn1[5][5][7] =-1./24.;
+
+    //M67
+    vcn1[5][6][4] = 1./6.;
+    vcn1[5][6][5] = 1./2.;
+    vcn1[5][6][6] = 1./2.;
+    vcn1[5][6][7] = 1./6.;
+
+    //M68
+    vcn1[5][7][5] =-1./8.;
+    vcn1[5][7][6] = 1./6.;
+    vcn1[5][7][7] =-1./8.;
+
+    //M is symmetric
+    for (int j=0; j<nBnd; j++)
+      for (int m=0; m<j; m++)
+	for (int l=0; l<nMax; l++) vcn1[j][m][l] = vcn1[m][j][l];
+
+    // multiply boundary rows by H^{-1}
+    Array1D<double> norm(nBnd);
+    norm(0) = 48./17.;
+    norm(1) = 48./59.;
+    norm(2) = 48./43.;
+    norm(3) = 48./49.;
+    norm(4) = 1.;
+    norm(5) = 1.;
+    for (int j=0; j<nBnd; j++){
+      nj = vcn2[j][1];
+      for (int m=0; m<nj; m++){
+	nl = vcn3[j][m][1];
+	for (int l=0; l<nl; l++) vcn1[j][m][l] *= norm(j);
+      }}
+    norm.deallocate();
+
+    for (int j=nBnd; j<nStrandNode-nBnd; j++){ //interior coefficients
+      vcn1[j][0][0] =-1./8.;
+      vcn1[j][0][1] = 1./6.;
+      vcn1[j][0][2] =-1./8.;
+      
+      vcn1[j][1][0] = 1./6.;
+      vcn1[j][1][1] = 1./2.;
+      vcn1[j][1][2] = 1./2.;
+      vcn1[j][1][3] = 1./6.;
+
+      vcn1[j][2][0] =-1./24.;
+      vcn1[j][2][1] =-5./6.;
+      vcn1[j][2][2] =-3./4.;
+      vcn1[j][2][3] =-5./6.;
+      vcn1[j][2][4] =-1./24.;
+      
+      vcn1[j][3][0] = 1./6.;
+      vcn1[j][3][1] = 1./2.;
+      vcn1[j][3][2] = 1./2.;
+      vcn1[j][3][3] = 1./6.;
+
+      vcn1[j][4][0] =-1./8.;
+      vcn1[j][4][1] = 1./6.;
+      vcn1[j][4][2] =-1./8.;
+    }
+
+    int p;
+    i = nBnd-1;
+    for (int j=nStrandNode-nBnd; j<nStrandNode; j++){ //tip coefficients
+      j1 = vcn2[i][0];
+      nj = vcn2[i][1];
+      k  = nj-1;
+      for (int m=0; m<nj; m++){
+	l1 = vcn3[i][k][0];
+	nl = vcn3[i][k][1];
+	p  = nl-1;
+	for (int l=0; l<nl; l++) vcn1[j][m][l] = vcn1[i][k][p--];
+	k--;
+      }
+      i--;
+    }
+  }
+
+
+  else if (strandOrder == 4){ // D_2^(6,3,5)
+  }
+
+
+  else{
+    cout << "\nThis strand order not yet available for viscous terms." << endl;
+    exit(0);
+  }
+
+  /*
+  int j1,nj,l1,nl;
+  double sum,sum2;
+  for (int j=0; j<nStrandNode; j++){
+    sum = 0.;
+    j1 = vcn2[j][0];
+    nj = vcn2[j][1];
+    cout << "\nNode: " << j << " " << endl;
+    for (int m=0; m<nj; m++){
+      l1 = vcn3[j][m][0];
+      nl = vcn3[j][m][1];
+      //cout << "stencil loc: " << j1++ << " " << endl;
+      sum2 = 0.;
+      //for (int l=0; l<nl; l++) cout << l1++ << " " << vcn1[j][m][l] << endl;
+      for (int l=0; l<nl; l++) sum  += vcn1[j][m][l];
+      for (int l=0; l<nl; l++) sum2 += vcn1[j][m][l];
+      //cout << sum2 << endl;
+    }
+    cout << sum << endl;
+  }
+  exit(0);
+  */
+}

@@ -1,0 +1,13 @@
+digraph "Tri2dFCSystem::bcConflict"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCSystem::bcConflict",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCBlockSolver\l::reorderNodes",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#af7483365b579892d85920a8c908c62b2",tooltip="Reorder nodes with boundary nodes at the end of the list. "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCBlockSolver\l::connectivity",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a79440b68993f102164e50ac32faa28cc",tooltip="Form all grid connectivity. "];
+  Node3 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="Tri2dFCBlockSolver\l::initialize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#af52b96dd1104d256cbdb688e8eea4087",tooltip="Initializes data structures for the block solver. "];
+}

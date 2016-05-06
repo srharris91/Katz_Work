@@ -1,0 +1,89 @@
+&Strand2dFCManager
+        meshFile        = name of mesh file
+	nLevels		= number of multigrid mesh levels to generate
+	meshOrders(1:3)	= order of surface mesh (cubic, quadratic, or linear)
+	surfDist	= distribution of internal element nodes: 1=uniform, 2=Chebychev
+        strandDist      = strand node distribution: 1=uniform, 2=geometric, 3=hyp. tan.
+	perturb		= option to perturb strand nodes (used for testing)
+        nStrandNode     = number of nodes along each strand
+        wallSpacing     = spacing of first node off the wall
+        strandLength    = length of strands
+        stretchRatio    = ratio of adjacent strand cells
+        deltaSmooth     = smoothing threshold
+        iplotmesh       = mesh plotting flag !0 = no output grid file
+                                             !1 = write Paraview grid file
+/
+
+&numerics
+	iPrint		= not used currently
+	iTest		= not used currently
+	iDebug		= not used currently
+	iConvFile	= flag to print temporal convergence history file
+	iSolnFile	= flag to write Paraview output of the solution
+	iResdFile	= flag to write Paraview output of the residual
+	iErrFile	= flag to write Paraview output of the error (if MMS is used)
+	iSurfFile	= flag to write surface force output file
+	standAlone	= flag to indicate stand alone mode
+	restartStep	= not used currently
+	nRestart	= not used currently
+	nOutput		= unsteady time interval to print Paraview output
+	nSteps		= number of unsteady time steps
+	nPseudoSteps	= number of pseudo-time steps (after the first unsteady step)
+	nPseudoSteps0	= number of pseudo-time steps (for the first unsteady step)
+	nLinearSteps	= not used currently
+	nRKStages	= number of Runge-Kutta stages for the pseudo-time integration
+	implicit	= not used currently
+        surfOrders(1:3) = order of accuracy in the surface direction for each MG level
+        strandOrders(1:3) = order of accuracy in the strand direction for each MG level
+        gradMethod      = method of gradient reconstruction method
+	mgCycle		= MG cycle topology
+	limiter		= flag to use limiter
+	timeAcc		= order of time accuracy
+	dtUnsteady	= unsteady time step
+	cfl		= CFL for pseudo-time integration
+	vnn		= Von Neumann numbe for pseudo-time integration
+	smooth		= implicit residual smoothing parameter
+	convLimit	= convergence threshold of the pseudo time integration
+	relax		= MG relaxation parameter
+	systemType      = desired set of equations to solve
+/
+
+&SPLam
+        inviscid        = flag to include inviscid flux terms
+        dissipation     = flag to include artificial dissipation flux terms
+        viscous         = flag to include viscous flux terms
+        solution        = solution initialization method
+        state(1)        = desired equation of state
+        transport(1)    = desired transport properties
+        nBpatches       = number of boundary patches in the mesh
+        bType(1)        = boundary type for each patch
+        bValue(1:4,1)   = boundary values for each patch
+/
+
+&freeStream
+        rValue(1:4)     = freestream values for initialization
+/
+
+&perturb
+        rValue(1:4)     = perturbation values for initialization
+        pert            = perturbation value
+/
+
+&mms2d
+        rValue(1:4)     = baseline values for MMS solution
+        period          = period of MMS solution
+        amplitude       = amplitude of MMS solution
+/
+
+&idealGas
+        rGas(1)         = ideal gas constant
+        gamma(1)        = ratio of specific heats
+/
+
+&sutherland
+        mu0(1)          = freestream viscosity
+        t0(1)           = freestream temperature
+        s(1)            = Sutherland constant
+        prn(1)          = Prandtl number
+        prnT(1)         = turbulent Prandtl number
+/

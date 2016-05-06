@@ -1,0 +1,349 @@
+#include "Strand2dFCBlockMesh.h"
+#include "Strand2dFCManInputRead.h"
+#include "strand1dDist.h"
+
+
+void Strand2dFCBlockMesh::initialize(const int& level0,
+				     const int& meshOrder0,
+				     const int& nSurfElem0,
+				     const int& nSurfNodeG,
+				     const int& nBndNode0,
+				     const int& nStrandNodeG,
+				     const int& nCompBd0,
+				     int** surfElemG,
+				     const Array1D<int>& bndNodeG,
+				     const Array2D<double>& surfXG,
+				     const Array1D<double>& strandXG,
+				     const Array1D<int>& surfElemTagG,
+				     const Array1D<int>& bndNodeTagG,
+				     const Array2D<double>& bndNodeNormalG)
+{
+  // copy dimensions for this block
+  level = level0;
+  meshOrder = meshOrder0;
+  nSurfElem = nSurfElem0;
+  nBndNode = nBndNode0;
+  nCompBd = nCompBd0;
+
+
+  // allocate space for the mesh data, and copy the known data
+  surfElem.allocate(nSurfElem,meshOrder+1);
+  surfElemTag.allocate(nSurfElem);
+  bndNode.allocate(nBndNode);
+  bndNodeTag.allocate(nBndNode);
+  bndNodeNormal.allocate(nBndNode,2);
+  for (int n=0; n<nSurfElem; n++) surfElemTag(n) = surfElemTagG(n);
+  for (int n=0; n<nBndNode; n++){
+    bndNodeTag(n)      = bndNodeTagG(n);
+    bndNodeNormal(n,0) = bndNodeNormalG(n,0);
+    bndNodeNormal(n,1) = bndNodeNormalG(n,1);
+  }
+
+
+  // form surface elements of the desired order, count surface nodes
+  int n1,n2;
+  Array1D<int> flag(nSurfNodeG);
+  flag.set(-1);
+  nSurfNode = 0;
+  for (int n=0; n<nSurfElem; n++){ //add element end points first
+    n1 = surfElemG[n][1];
+    n2 = surfElemG[n][2];
+    if (flag(n1) == -1) flag(n1) = nSurfNode++;
+    if (flag(n2) == -1) flag(n2) = nSurfNode++;
+    surfElem(n,0) = flag(n1);
+    surfElem(n,1) = flag(n2);
+  }
+  for (int n=0; n<nSurfElem; n++) //add interior dofs next
+    for (int j=2; j<meshOrder+1; j++) surfElem(n,j) = nSurfNode++;
+
+
+  // point the bndNode array to the new node numbers
+  for (int n=0; n<nBndNode; n++) bndNode(n) = flag(bndNodeG(n));
+
+
+  // find surface mesh coordinates based on mappings from the mesh file
+  Array1D<double> ss(meshOrder+1);
+  int spacing=0; // assume equal spacing for now
+  solutionPoints1D(meshOrder, //find s-locations based on desired spacing
+		   spacing,
+		   &ss(0));
+  surfX.allocate(nSurfNode,2);
+  surfX.set(0.);
+  bool test=false;
+  int orderM;
+  double lm;
+  Array1D<double> sM;
+  Array2D<double> lcM;
+  flag.deallocate();
+  flag.allocate(nSurfNode);
+  flag.set(-1);
+  for (int n=0; n<nSurfElem; n++){
+    orderM = surfElemG[n][0];
+
+    // s-locations using numbering consistent with the mesh
+    sM.allocate(orderM+1);
+    solutionPoints1D(orderM,
+		     spacing,
+		     &sM(0));
+
+    // lagrange polynomials at the sM locations
+    lcM.allocate(orderM+1,orderM+1);
+    lagrangePoly1D(test,
+                   orderM,
+                   &sM(0),
+                   &lcM(0,0));
+
+    // evaluate the x-coordinates at the local solution points
+    for (int i=0; i<meshOrder+1; i++) //ith local point
+      if (flag(surfElem(n,i)) == -1){//haven't computed this location yet
+        for (int m=0; m<orderM+1; m++){ //mth Lagrange poly. used in mapping
+          lm = 0.;
+          for (int k=0; k<orderM+1; k++) lm += pow(ss(i),k)*lcM(m,k);
+          surfX(surfElem(n,i),0) += lm*surfXG(surfElemG[n][m+1],0);
+          surfX(surfElem(n,i),1) += lm*surfXG(surfElemG[n][m+1],1);
+        }
+        flag(surfElem(n,i)) = 0;
+      }
+    sM.deallocate();
+    lcM.deallocate();
+  }
+
+
+  // generate pointing vectors
+  // first find surface mapping based on global mesh
+  Array2D<double> xS(nSurfElem,meshOrder+1),yS(nSurfElem,meshOrder+1);
+  xS.set(0.);
+  yS.set(0.);
+  int ni,nm;
+  Array2D<double> lsM;
+  for (int n=0; n<nSurfElem; n++){
+    orderM = surfElemG[n][0];
+
+    // s-locations using numbering consistent with the mesh
+    sM.allocate(orderM+1);
+    solutionPoints1D(orderM,
+		     spacing,
+		     &sM(0));
+
+    // lagrange polynomials at the sM locations
+    lcM.allocate(orderM+1,orderM+1);
+    lagrangePoly1D(test,
+                   orderM,
+                   &sM(0),
+                   &lcM(0,0));
+
+    // ls(i,j) = (dl_j/ds)_i (a row is all Lagrange polynomials (derivatives)
+    // evaluated at a single mesh point i)
+    lsM.allocate(meshOrder+1,orderM+1);
+    lsM.set(0.);
+    int km;
+    for (int i=0; i<meshOrder+1; i++) // ith mesh point
+      for (int j=0; j<orderM+1; j++) // jth Lagrange polynomial
+	for (int k=0; k<orderM+1; k++){
+	  km        = max(0,k-1);
+	  lsM(i,j) +=((double)k)*pow(ss(i),km)*lcM(j,k);
+	}
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<meshOrder+1; i++) //ith point in the element
+	for (int m=0; m<orderM+1; m++){ //mth Lagrange poly. in mapping
+	  xS(n,i) += lsM(i,m)*surfXG(surfElemG[n][m+1],0);
+	  yS(n,i) += lsM(i,m)*surfXG(surfElemG[n][m+1],1);
+	}
+    sM.deallocate();
+    lcM.deallocate();
+  }
+
+
+  // initialize all pointing vectors
+  // using the surface mapping (averaged among neighboring elements)
+  pointingVec.allocate(nSurfNode,2);
+  pointingVec.set(0.);
+  int m;
+  double nx,ny,ds,rms;
+  for (int n=0; n<nSurfElem; n++)
+    for (int i=0; i<meshOrder+1; i++){
+      m                 = surfElem(n,i);
+      nx                =-yS(n,i);
+      ny                = xS(n,i);
+      ds                = 1./sqrt(nx*nx+ny*ny);
+      nx               *= ds;
+      ny               *= ds;
+////////////////////////////////////////////////////////////////////////
+//~ change the 2 comment lines below with code lines to have normal 
+//~ pointing vectors instead of verticle pointing vectors
+      //~ pointingVec(m,0) += nx;
+      //~ pointingVec(m,1) += ny; 
+      pointingVec(m,0) = 0.;
+      pointingVec(m,1) = 1.;
+    }
+  for (int n=0; n<nSurfNode; n++){
+    ds                = 1./sqrt(pointingVec(n,0)*pointingVec(n,0)+
+		                pointingVec(n,1)*pointingVec(n,1));
+    pointingVec(n,0) *= ds;
+    pointingVec(n,1) *= ds;
+  }
+
+  // smooth the strands interior to elements iteratively
+  int* psp1;
+  int** psp2;
+  psp1 = new int[meshOrder+1];
+  psp2 = new int*[meshOrder+1];
+  if (meshOrder == 1){
+    psp1[0] = 1;
+    psp1[1] = 1;
+    psp2[0] = new int[psp1[0]];
+    psp2[0][0] = 1;
+    psp2[1] = new int[psp1[1]];
+    psp2[1][0] = 0;
+  }
+  else if (meshOrder == 2){
+    psp1[0] = 1;
+    psp1[1] = 1;
+    psp1[2] = 2;
+    psp2[0] = new int[psp1[0]];
+    psp2[0][0] = 2;
+    psp2[1] = new int[psp1[1]];
+    psp2[1][0] = 2;
+    psp2[2] = new int[psp1[2]];
+    psp2[2][0] = 0;
+    psp2[2][1] = 1;
+  }
+  else if (meshOrder == 3){
+    psp1[0] = 1;
+    psp1[1] = 1;
+    psp1[2] = 2;
+    psp1[3] = 2;
+    psp2[0] = new int[psp1[0]];
+    psp2[0][0] = 2;
+    psp2[1] = new int[psp1[1]];
+    psp2[1][0] = 3;
+    psp2[2] = new int[psp1[2]];
+    psp2[2][0] = 0;
+    psp2[2][1] = 3;
+    psp2[3] = new int[psp1[3]];
+    psp2[3][0] = 2;
+    psp2[3][1] = 1;
+  }
+  else if (meshOrder == 4){
+    psp1[0] = 1;
+    psp1[1] = 1;
+    psp1[2] = 2;
+    psp1[3] = 2;
+    psp1[4] = 2;
+    psp2[0] = new int[psp1[0]];
+    psp2[0][0] = 2;
+    psp2[1] = new int[psp1[1]];
+    psp2[1][0] = 4;
+    psp2[2] = new int[psp1[2]];
+    psp2[2][0] = 0;
+    psp2[2][1] = 3;
+    psp2[3] = new int[psp1[3]];
+    psp2[3][0] = 2;
+    psp2[3][1] = 4;
+    psp2[4] = new int[psp1[4]];
+    psp2[4][0] = 3;
+    psp2[4][1] = 1;
+  }
+  else{
+    cout << "\nPlease choose meshOrder=3 or less." << endl;
+    exit(0);
+  }
+  if (meshOrder > 1)
+    for (int n=0; n<nSurfElem; n++)
+      for (int iter=0; iter<1000; iter++){
+	rms = 0.;
+	for (int i=2; i<meshOrder+1; i++){
+	  ni = surfElem(n,i);
+	  nx = 0.;
+	  ny = 0.;
+	  for (int m=0; m<psp1[i]; m++){
+	    nm  = surfElem(n,psp2[i][m]);
+	    nx += pointingVec(nm,0);
+	    ny += pointingVec(nm,1);
+	  }
+	  ds                = 1./sqrt(nx*nx+ny*ny);
+	  nx               *= ds;
+	  ny               *= ds;
+	  rms              += (nx-pointingVec(ni,0))*(nx-pointingVec(ni,0))+
+	                      (ny-pointingVec(ni,1))*(ny-pointingVec(ni,1));
+	  pointingVec(ni,0) = nx;
+	  pointingVec(ni,1) = ny;
+	}
+	rms = sqrt(rms/(double)(meshOrder-1));
+	if (rms < 1.e-13) break;
+      }
+
+
+
+
+/*
+  for (int n=0; n<nSurfNode; n++){
+    pointingVec(n,0) = 0.;
+    pointingVec(n,1) = 1.;
+  }
+*/
+
+
+
+  // determine strand node distribution
+  int ks=nStrandNodeG-1,js=pow(2,level);
+  if (ks%js != 0){
+    cout << "\n***Number of strand nodes not a good multigrid number.***"
+	 << endl;
+    exit(0);
+  }
+  nStrandNode =(nStrandNodeG-1)/pow(2,level);
+  nStrandNode++;
+  strandX.allocate(nStrandNode);
+  int i=0;
+  for (int j=0; j<nStrandNode; j++){
+    strandX(j) = strandXG(i);
+    i += pow(2,level);
+  }
+
+
+  // generate clipping index
+  clip.allocate(nSurfNode);
+  clip.set(nStrandNode-1);
+
+
+  // report mesh statistics
+  if (level == 0){
+    cout.setf(ios::scientific);
+    cout << "\nMesh statistics: " << endl
+	 << "Number of surface elements: " << nSurfElem << endl
+	 << "Number of surface nodes: " << nSurfNode << endl
+	 << "Number of boundary nodes: " << nBndNode << endl
+	 << "Number of boundary comp.: " << nCompBd << endl
+	 << "Number of strand nodes: " << nStrandNode << endl;
+    
+    cout  << "\nstrand distribution:";
+    for (int n=0; n<nStrandNode; n++) cout << "\n" << n << "\t" << strandX(n);
+    cout << "\nwall spacing: " << strandX(1)
+	 << "\ntip spacing: " << strandX(nStrandNode-1)-strandX(nStrandNode-2)
+	 << "\n" << endl;
+  }
+
+
+  // clean up
+  if (psp1){
+    delete [] psp1;
+    psp1 = NULL;
+  }
+  if (psp2){
+    for (int i=0; i<meshOrder+1; i++)
+      if (psp2[i]){
+	delete [] psp2[i];
+	psp2[i] = NULL;
+      }
+    delete [] psp2;
+    psp2 = NULL;
+  }
+  xS.deallocate();
+  yS.deallocate();
+  lcM.deallocate();
+  lsM.deallocate();
+  sM.deallocate();
+  ss.deallocate();
+  flag.deallocate();
+}

@@ -1,0 +1,37 @@
+Strand2dFCManager manages the Strand2dFC single block 2d strand grid solver.
+The manager reads in a surface mesh, generates strand grids on multiple
+multigrid levels, and invokes the unsteady block solver to compute flow and
+generate output.
+
+To compile the meshing executable (only generates the strand mesh for testing
+of the strand generation procedure, and does not solve the flow equations):
+        1. Set the proper paths and compiler options in Make.rules
+		MANAGER = current path to Strand2dFCManager
+		MANAGERLIB = desired name of manager library
+                SOLVER = path to Strand2dFC block solver
+                SOLVERLIB = name of solver library to link to. NOTE: the
+	                    Strand2dFC block solver library must be compiled
+	                    beforehand.
+                PHYSICS = path to Physics library
+                PHYSICSLIB = name of Physics library to link to. NOTE: the
+	                     Physics library must be compiled beforehand.
+        2. Type "make driver".
+	3. A .exec file will be created in the Strand2dFCManager/run/ directory.
+	2. Type ./Strand2dFCManager.exec "inputFile" to test strand meshing.
+
+To compile the flow solver executable:
+	1. Follow step 1 for the meshing executable above
+	2. Type "make solver".
+	3. A .exec file will be created in the Strand2dFCManager/run/ directory.
+
+To run cases:
+	1. Create imput file. NOTE: See Strand2dFCManager/run/input.namelist.notes
+	   for a description of meshing and solver inputs.
+	2. Type ./Strand2dFCSolver.exec "inputFile"
+	3. An unsteady flow configuration around a circular cylinder is setup in the
+	   Strand2dFCManager/run/circle/ directory. The Strouhal number corresponding
+	   to the unsteady shedding behavior may be computed from the unsteady lift
+	   signal by using the fft_shed.m Matlab routine.
+
+To remove the library  and any object files:
+        1. Type "make clean".

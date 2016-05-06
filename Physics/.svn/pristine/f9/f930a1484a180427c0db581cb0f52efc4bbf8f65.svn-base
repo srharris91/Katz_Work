@@ -1,0 +1,30 @@
+###############################################################################
+#                                                                             #
+#                    Src level Makefile for arccfd codes                      #
+#                                                                             #
+###############################################################################
+
+
+include ../Make.rules
+include State/Make.State.objs
+include Transport/Make.Transport.objs
+include Solution/Make.Solution.objs
+include Fortran/Make.Fortran.objs
+
+
+OBJS = $(STATEOBJS) $(TRANSPORTOBJS) $(SOLUTIONOBJS) $(FORTRANOBJS)
+
+
+includes:
+	ln -f State/*.h     Include/
+	ln -f Transport/*.h Include/
+	ln -f Solution/*.h  Include/
+
+
+library: includes $(OBJS)
+	$(AR) $(ARFLAGS) lib$(PHYSICSLIB).a $(OBJS)
+	mv lib$(PHYSICSLIB).a ../lib
+
+
+clean:
+	rm -rf */*.o */*~ *~ ../lib/*.a

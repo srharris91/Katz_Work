@@ -1,0 +1,7 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::limit()
+{
+  lim.set(1.);
+}

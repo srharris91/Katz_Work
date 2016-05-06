@@ -1,0 +1,102 @@
+// File:        StrandMultiBlockSolver.h
+// Package:     STRANDGEN
+//              Parallel Infrastructure for Cartesian & Strand Solvers
+// Release:     $Name:  $
+// Revision:    $Revision:  $
+// Modified:    $Date:  $
+// Description: Manages multi-block solver procedures
+
+/*!
+ * StrandMultiBlockSolver manages the global solution process by
+ * invoking StrandBlockSolver member functions in loops over blocks.
+ *
+ * The main functions in this class are:
+ *
+ *
+ * The class is a SINGLETON object, meaning there can be only one instance
+ * in the application. This instance can be accessed from any other 
+ * object, at any time, using the following convention:
+ *
+ *    \verbatim
+ *    StrandMultiBlockSolver::createManager();    // must be called once
+ *    StrandMultiBlockSolver* smbs = StrandMultiBlockSolver::getManager();
+ *    \endverbatim
+ */
+
+
+#ifndef included_StrandMultiBlockSolver
+#define included_StrandMultiBlockSolver
+
+#include "STRANDGEN_defs.h"
+#include "StrandMultiBlockMesh.h"
+#include "StrandBlockSolver.h"
+
+
+class StrandMultiBlockSolver
+{
+public:
+
+  // @brief Create singleton instance.
+  static void createManager();
+
+  // @brief Return a pointer to the singleton instance.
+  static StrandMultiBlockSolver* getManager();
+
+  // @brief Deallocate the manager instance.
+  static void freeManager();
+
+  // @brief Initialize
+  void initialize(string& input_file);
+
+  // @brief Take pseudo time step
+  void takePseudoStep(int& step,
+		      int& pseudoStep,
+		      int& converged);
+
+  // @brief output time step
+  void outputStep(int& step);
+
+  // @brief finalize
+  void finalize();
+
+  // get methods
+  const int& getRestartStep();
+  const int& getNSteps();
+  const int& getNPseudoSteps0();
+  const int& getNPseudoSteps();
+
+
+protected:
+ 
+  // @brief protected constructor.
+  StrandMultiBlockSolver();
+
+  // @brief protected destructor.
+  virtual ~StrandMultiBlockSolver();
+   
+
+private:
+
+  //Singleton instance 
+  static StrandMultiBlockSolver* smbs_manager_instance;
+  StrandBlockSolver* d_strandBlockSolvers;
+  static int d_nLevels;
+  static int d_mgCycle;
+  static int d_pseudoStepTot;
+  static int d_iConvFile;
+  static int d_restartStep;
+  static int d_nSteps;
+  static int d_nPseudoSteps0;
+  static int d_nPseudoSteps;
+  static int d_nLinearSteps;
+  static int d_nq;
+  static int d_npos;
+  static double d_convLimit;
+  static double* d_rms;
+  static int* d_mgLevel;
+  static int* d_mgMode;
+
+  // status logicals
+  static bool d_initialized;
+};
+#endif

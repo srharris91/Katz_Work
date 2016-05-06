@@ -1,0 +1,61 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsDissipation()
+{
+  // compute gradient of Q
+  if (!gradQComputed) gradient(nq,&q(0,0),&qx(0,0,0));
+  gradQComputed = true;
+
+
+  // compute limiter
+  if (!limiterComputed) limit();
+  limiterComputed = true;
+
+
+  // contributions from interior edges
+  int n1,n2;
+  double Lr,ds,dx,dy,Ax,Ay,qL[nq],qR[nq],fd[nq];
+  for (int n=0; n<nEdge; n++){
+    n1     = edge(n,0);
+    n2     = edge(n,1);
+    dx     = .5*(x(n2,0)-x(n1,0));
+    dy     = .5*(x(n2,1)-x(n1,1));
+    Ax     = area(n,0);
+    Ay     = area(n,1);
+    ds     = 1./sqrt(Ax*Ax+Ay*Ay);
+    Lr     =(dx*Ax+dy*Ay)*ds;
+    for (int k=0; k<nq; k++){
+      qL[k]  = q(n1,k)+lim(n,k)*(dx*qx(n1,0,k)+dy*qx(n1,1,k));
+      qR[k]  = q(n2,k)-lim(n,k)*(dx*qx(n2,0,k)+dy*qx(n2,1,k));
+    }
+    sys->rhsDisFlux(1,&Lr,&Ax,&Ay,&qL[0],&qR[0],&fd[0]);
+    for (int k=0; k<nq; k++){
+      fd[k]   *= .5;
+      d(n1,k) -= fd[k];
+      d(n2,k) += fd[k];
+    }}
+
+
+  // contributions from boundary edges
+  int m=0;
+  double sixth=1./6.;
+  for (int n=nEdge-nEdgeBd; n<nEdge; n++){
+    n1     = edge(n,0);
+    n2     = edge(n,1);
+    dx     = .5*(x(n2,0)-x(n1,0));
+    dy     = .5*(x(n2,1)-x(n1,1));
+    Ax     = areaBd(m  ,0);
+    Ay     = areaBd(m++,1);
+    Lr     = sqrt(dx*dx+dy*dy);
+    for (int k=0; k<nq; k++){
+      qL[k]  = q(n1,k)+lim(n,k)*(dx*qx(n1,0,k)+dy*qx(n1,1,k));
+      qR[k]  = q(n2,k)-lim(n,k)*(dx*qx(n2,0,k)+dy*qx(n2,1,k));
+    }
+    sys->rhsDisFlux(1,&Lr,&Ax,&Ay,&qL[0],&qR[0],&fd[0]);
+    for (int k=0; k<nq; k++){
+      fd[k]   *= sixth;
+      d(n1,k) -= fd[k];
+      d(n2,k) += fd[k];
+    }}
+}

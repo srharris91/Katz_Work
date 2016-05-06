@@ -1,0 +1,179 @@
+#include "Solution.h"
+
+
+// [Solution]
+Solution::Solution()
+{
+}
+// [Solution]
+
+
+// [~Solution]
+Solution::~Solution()
+{
+}
+// [~Solution]
+
+
+// [initialize]
+void Solution::initialize(const int& isolution,
+			  const int& nq,
+			  const int& ndim,
+			  const string& inputFile,
+			  State* state,
+			  Transport* transport)
+{
+  if      (isolution == 1) solutionType = new FreeStream;
+  else if (isolution == 2) solutionType = new Perturb;
+  else if (isolution == 3) solutionType = new Mms2d;
+  else if (isolution == 5) solutionType = new Mms3d;
+  else{
+    cout << "\nSolution type not recognized in initialize. Terminating."
+	 << endl;
+    exit(0);
+  }
+  solutionType->initialize(nq,
+			   ndim,
+			   inputFile,
+			   state,
+			   transport);
+}
+void Solution::initialize(const int& isolution,
+			  const int& nq,
+			  const int& ndim,
+			  const string& inputFile)
+{
+  if      (isolution == 1) solutionType = new FreeStream;
+  else if (isolution == 2) solutionType = new Perturb;
+  else if (isolution == 3) solutionType = new Mms2d;
+  else if (isolution == 5) solutionType = new Mms3d;
+  else{
+    cout << "\nSolution type not recognized in initialize. Terminating."
+	 << endl;
+    exit(0);
+  }
+  solutionType->initialize(nq,
+			   ndim,
+			   inputFile);
+}
+// [initialize]
+
+
+// [getRefValues]
+double* Solution::getRefValues()
+{
+  return(solutionType->getRefValues());
+}
+// [getRefValues]
+
+
+// [getQ]
+void Solution::getQ(const int& npts,
+		    const double* x,
+		    double* q)
+{
+  solutionType->getQ(npts,x,q);
+}
+// [getQ]
+
+
+// [getQx]
+void Solution::getQx(const int& npts,
+		     const double* x,
+		     double* qx)
+{
+  solutionType->getQx(npts,x,qx);
+}
+// [getQx]
+
+
+// [getQy]
+void Solution::getQy(const int& npts,
+		     const double* x,
+		     double* qy)
+{
+  solutionType->getQy(npts,x,qy);
+}
+// [getQy]
+
+
+// [getQz]
+void Solution::getQz(const int& npts,
+		     const double* x,
+		     double* qz)
+{
+  solutionType->getQz(npts,x,qz);
+}
+// [getQz]
+
+
+// [getQxx]
+void Solution::getQxx(const int& npts,
+		      const double* x,
+		      double* qxx)
+{
+  solutionType->getQxx(npts,x,qxx);
+}
+// [getQxx]
+
+
+// [getQyy]
+void Solution::getQyy(const int& npts,
+		      const double* x,
+		      double* qyy)
+{
+  solutionType->getQyy(npts,x,qyy);
+}
+// [getQyy]
+
+
+// [getQzz]
+void Solution::getQzz(const int& npts,
+		      const double* x,
+		      double* qzz)
+{
+  solutionType->getQzz(npts,x,qzz);
+}
+// [getQzz]
+
+
+// [getQxy]
+void Solution::getQxy(const int& npts,
+		      const double* x,
+		      double* qxy)
+{
+  solutionType->getQxy(npts,x,qxy);
+}
+// [getQxy]
+
+
+// [getQxz]
+void Solution::getQxz(const int& npts,
+		      const double* x,
+		      double* qxz)
+{
+  solutionType->getQxz(npts,x,qxz);
+}
+// [getQxz]
+
+
+// [getQyz]
+void Solution::getQyz(const int& npts,
+		      const double* x,
+		      double* qyz)
+{
+  solutionType->getQyz(npts,x,qyz);
+}
+// [getQyz]
+
+
+// [finalize]
+void Solution::finalize()
+{
+  if (solutionType){
+    solutionType->finalize();
+    delete solutionType;
+    solutionType = NULL;
+  }
+}
+// [finalize]

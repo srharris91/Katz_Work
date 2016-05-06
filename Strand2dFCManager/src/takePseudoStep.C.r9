@@ -1,0 +1,57 @@
+#include "Strand2dFCManager.h"
+
+
+void Strand2dFCManager::takePseudoStep(const int& step,
+				       const int& pseudoStep,
+				       bool& converged)
+{
+  // shift time levels/initialize the solution at n+1 for unsteady case
+  if (step > 0 && pseudoStep == 0){
+    cout << "\nSolving physical time step " << step << endl;
+    for (int level=0; level<nLevels; level++)
+      blockSolver(0,level).shiftTime(step);
+  }
+
+  if (pseudoStep == 0) timeS0 = clock();
+
+
+  // declare and initialize working variables
+  int stage,pos=0,level=mgLevel(0),mode=mgMode(0);
+  converged = false;
+
+
+  // start MG cycle
+  do{ 
+    // prolong corrections
+    if (mode >= 4) blockSolver(0,level).prolong();
+
+
+    // perform Runge-Kutta iterations
+    if (mode <= 4)
+      for (stage=0; stage<nRKStages; stage++)
+	blockSolver(0,level).solve(step,
+				   pseudoStep,
+				   stage,
+				   mode);
+
+
+    // recompute residual for MG restriction, then restrict
+    if ((mode == 1 || mode == 2 || mode == 4) && nLevels > 1){
+      mode =-mode; stage = 0;
+      blockSolver(0,level).computeRHS(step,
+				      pseudoStep,
+				      stage,
+				      mode);
+      mode =-mode;
+      blockSolver(0,level+1).restrict();
+    }
+
+    // move to next level
+    pos++; level = mgLevel(pos); mode = mgMode(pos);
+
+    // check convergence if done with the entire MG cycle
+    if (mode == 0) convHistory(step,
+			       pseudoStep,
+			       converged);
+  } while(mode != 0);
+}

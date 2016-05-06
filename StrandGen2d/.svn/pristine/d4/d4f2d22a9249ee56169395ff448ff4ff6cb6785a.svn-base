@@ -1,0 +1,153 @@
+!> \brief
+!! This subroutine initializes the strand pointing vectors.
+!!
+!! Comments:
+!!
+!! Versions:
+!!   - 1.0 Katz 07/23/2010
+!!
+!! Additional notes:\par
+!!   none
+!!
+!! Source code:
+!!   \include initPointingVec.f90
+
+
+SUBROUTINE initpointingvec(nFaces, &
+		           nNodes, &
+                           nGfaces, &
+                           nGnodes, &
+                           nBedges, &
+	 		   nScomp, &
+                           nBcomp, &
+                           nCsp1, &
+                           nPsp1, &
+                           face, &
+                           bEdge, &
+                           bTag, &
+                           xSrf, &
+                           pV, &
+                           bNorm, &
+                           csp1, &
+                           csp2, &
+                           pv0, &
+                           ang)
+
+IMPLICIT NONE
+
+INTEGER,INTENT(IN   ) :: nFaces, &
+		         nNodes, &
+                         nGfaces, &
+                         nGnodes, &
+                         nBedges, &
+			 nScomp, &
+                         nBcomp, &
+                         nCsp1, &
+                         nPsp1
+INTEGER,INTENT(IN   ),DIMENSION(2,nFaces) :: face
+INTEGER,INTENT(IN   ),DIMENSION(nBedges) :: bEdge
+INTEGER,INTENT(IN   ),DIMENSION(nBedges) :: bTag
+REAL,   INTENT(IN   ),DIMENSION(2,nNodes) :: xSrf
+REAL   ,INTENT(  OUT),DIMENSION(2,nNodes) :: pv
+REAL,   INTENT(IN   ),DIMENSION(2,nBcomp) :: bNorm
+INTEGER,INTENT(IN   ),DIMENSION(ncsp1) :: csp1
+INTEGER,INTENT(IN   ),DIMENSION(nNodes+1) :: csp2
+REAL   ,INTENT(  OUT),DIMENSION(2,nNodes) :: pv0
+REAL   ,INTENT(  OUT),DIMENSION(nNodes) :: ang
+INTEGER :: n1,n2,n3,n4,n,m,i,j,k
+REAL :: pi,xa,ya,xb,yb,xc,yc,xd,yd,ax,ay,ds,b,l1,l2, &
+        dxa,dya,dxb,dyb,a1,a2,nx,ny,nx1,ny1,nx2,ny2
+REAL,ALLOCATABLE,DIMENSION(:,:) :: pvc
+REAL :: ang0 = 90.
+
+
+pi = 4.*ATAN(1.)
+ang0 = ang0*pi/180.
+
+
+! find surface cell normals
+
+ALLOCATE(pvc(2,nFaces))
+pvc = 0.
+DO n=1,nFaces
+   n1        = face(1,n)
+   n2        = face(2,n)
+   xa        = xSrf(1,n1)
+   ya        = xSrf(2,n1)
+   xb        = xSrf(1,n2)
+   yb        = xSrf(2,n2)
+   dxa       = xb-xa
+   dya       = yb-ya
+   ds        = 1./SQRT(dxa*dxa+dya*dya)
+   pvc(1,n)  =-dya*ds
+   pvc(2,n)  = dxa*ds
+END DO
+
+
+! compute node normals
+
+DO n=1,nNodes-nGnodes
+   ax = 0.
+   ay = 0.
+   DO m=csp2(n)+1,csp2(n+1)
+      j  = csp1(m)
+      ax = ax+pvc(1,j)
+      ay = ay+pvc(2,j)
+   END DO
+   ds       = 1./SQRT(ax*ax+ay*ay)
+   pv0(1,n) = ax*ds
+   pv0(2,n) = ay*ds
+END DO
+
+
+! Constrain boundary vectors to lie in their planes
+
+DO n=1,nBedges
+   n1        = bEdge(n)
+   n2        = bTag(n)-nScomp
+   nx1       = bnorm(1,n2)
+   ny1       = bnorm(2,n2)
+   ax        = 0.
+   ay        = 0.
+   DO m=csp2(n1)+1,csp2(n1+1)
+      j      = csp1(m)
+      ax     = ax+pvc(1,j)
+      ay     = ay+pvc(2,j)
+   END DO
+   a1        = ax*nx1+ay*ny1
+   ax        = ax-a1*nx1
+   ay        = ay-a1*ny1
+   ds        = 1./SQRT(ax*ax+ay*ay)
+   pv0(1,n1) = ax*ds
+   pv0(2,n1) = ay*ds
+END DO
+pv = pv0
+
+
+! find visibility cone half angle
+
+DO n=1,nNodes-nGnodes
+   nx = pv0(1,n)
+   ny = pv0(2,n)
+   a1 = ang0
+   DO m=csp2(n)+1,csp2(n+1)
+      j  = csp1(m)
+      ax = pvc(1,j)
+      ay = pvc(2,j)
+      ds = nx*ax+ny*ay
+      ds = .5*pi-ACOS(ds)
+      a1 = MIN(a1,ds)
+   END DO
+   ang(n) = COS(a1)
+   IF (a1 < 0.) THEN
+      WRITE(*,*)
+      WRITE(*,*)'*** visibility condition not met at node: ***'
+      WRITE(*,'(I10,3ES14.4)')n,xSrf(:,n)
+      WRITE(*,*)
+   END IF
+END DO
+
+DEALLOCATE(pvc)
+
+
+END SUBROUTINE initpointingvec

@@ -1,0 +1,31 @@
+#include "StrandSPLam.h"
+
+
+void StrandSPLam::stepVisEigenvalue(const int& npts,
+				    const double* A,
+				    const double* q1,
+				    const double* q2,
+				    const double* qa1,
+				    const double* qa2,
+				    const double* v1,
+				    const double* v2,
+				    double* sr)
+{
+  int iq,iqa,iA,j=1;
+  double r,p,t,mu,k,Ax,Ay,AA,gamma,Cp;
+  for (int n=0; n<npts; n++){
+    iq    = nq  *n;
+    iqa   = nqa *n;
+    iA    = ndim*n;
+    r     = 1./(q1 [iq   ]+q2 [iq   ]);
+    p     = .5*(qa1[iqa  ]+qa2[iqa  ]);
+    t     = .5*(qa1[iqa+3]+qa2[iqa+3]);
+    mu    =     qa1[iqa+4]+qa2[iqa+4];
+    k     =     qa1[iqa+5]+qa2[iqa+5];
+    Cp    = gamma*rGas/gm1;
+    Ax    = A[iA  ];
+    Ay    = A[iA+1];
+    AA    = 2.*(Ax*Ax+Ay*Ay)/(v1[n]+v2[n]);
+    sr[n] = AA*r*(mu+gamma*k/Cp);
+  }
+}

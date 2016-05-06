@@ -1,0 +1,79 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsDissipation()
+{
+  // compute gradient of Q in the surface direction
+  gradient();
+
+
+  // compute limiter
+  limit();
+
+
+  // surface edge dissipation contributions
+  int p1,p2,n1,n2;
+  double xs1,ys1,xn1,yn1,xs2,ys2,xn2,yn2,qs1,qs2,Ax,Ay,qL[nq],qR[nq],f[nq],
+    ds=.5*deltaS;
+  for (int n=0; n<nSurfElem; n++)
+    //for (int n=0; n<0; n++)
+    for (int i=0; i<nElemEdge; i++){
+      p1 = elemEdge(i,0);
+      p2 = elemEdge(i,1);
+      n1 = surfElem(n,p1);
+      n2 = surfElem(n,p2);
+      for (int j=0; j<nStrandNode; j++){
+	xs1 = xs(n,p1,j);
+	ys1 = ys(n,p1,j);
+	xn1 = xn(n1,j);
+	yn1 = yn(n1,j);
+	xs2 = xs(n,p2,j);
+	ys2 = ys(n,p2,j);
+	xn2 = xn(n2,j);
+	yn2 = yn(n2,j);
+	Ax  = .5*(yn1+yn2);
+	Ay  =-.5*(xn1+xn2);
+	for (int k=0; k<nq; k++){
+	  qs1   = qx(n1,j,k,0)*xs1+qx(n1,j,k,1)*ys1;
+	  qs2   = qx(n2,j,k,0)*xs2+qx(n2,j,k,1)*ys2;
+	  qL[k] = q(n1,j,k)+lim(n1,j,k)*ds*qs1;
+	  qR[k] = q(n2,j,k)-lim(n2,j,k)*ds*qs2;
+	}
+	sys->rhsDisFlux(1,&Ax,&Ay,&qL[0],&qR[0],&f[0]);
+	for (int k=0; k<nq; k++){
+	  d(n1,j,k) -= .5*f[k];
+	  d(n2,j,k) += .5*f[k];
+	}}}
+
+
+  // strand edge dissipation contributions
+  double dn =.5*deltaN;
+  double dnr=.5/deltaN;
+  Array2D<double> qn(nStrandNode,nq);
+  for (int n=0; n<nSurfNode; n++){
+    //for (int n=0; n<0; n++){
+    for (int k=0; k<nq; k++)
+      qn(0,k) = 2.*dnr*(q(n,1,k)-q(n,0,k));
+    for (int k=0; k<nq; k++)
+      qn(nStrandNode-1,k) = 2.*dnr*(q(n,nStrandNode-1,k)-q(n,nStrandNode-2,k));
+    for (int j=1; j<nStrandNode-1; j++)
+      for (int k=0; k<nq; k++)
+	qn(j,k) = dnr*(q(n,j+1,k)-q(n,j-1,k));
+    for (int j=0; j<nStrandNode-1; j++){
+      xs1 = xsn(n,j  );
+      ys1 = ysn(n,j  );
+      xs2 = xsn(n,j+1);
+      ys2 = ysn(n,j+1);
+      Ax  =-.5*(ys1+ys2);
+      Ay  = .5*(xs1+xs2);
+      for (int k=0; k<nq; k++){
+	qL[k] = q(n,j  ,k)+lim(n,j  ,k)*dn*qn(j  ,k);
+	qR[k] = q(n,j+1,k)-lim(n,j+1,k)*dn*qn(j+1,k);
+      }
+      sys->rhsDisFlux(1,&Ax,&Ay,&qL[0],&qR[0],&f[0]);
+      for (int k=0; k<nq; k++){
+	d(n,j  ,k) -= dnr*f[k];
+	d(n,j+1,k) += dnr*f[k];
+      }}}
+  qn.deallocate();
+}

@@ -1,0 +1,37 @@
+&MeshGenerate
+	FName = "mesh.mesh"
+	Nx = 16 !Number of nodes (starting at zero)
+	Ny = 16 !Number of nodes (starting at zero)
+	SizeX = .5
+	SizeY = .5
+	LHX = 2.
+	LHY = 2.
+	Pert = .False.
+/
+&Manager
+	FType     = 2 ! 1 - .Plt (NASA Archives)    2 - .ames (UIUC Airfoil)
+	PlotName  = "ames01.dat"	
+	FName     = "NASA_AMES.mesh"
+/
+&Plot2Str
+	NBound    = 5 !Don't cound the top boundary
+	NSideBound= 2 !For 2d only use 2 (Right and Left Boundarys)
+	Method    = 1 !0 = Absolute point 1 = Absolute X location
+	MeshOrder = 4 !Program will Develop needed Points if higher (Some Not Implimented)
+/
+
+&Bound
+	! NBound-2 is how many boundaries to specify !
+	Bounds(1,0)  = -25.0		!Start Point or Location
+	Bounds(2,0)  = -.0000000009	!End Point or Location
+	Bounds(1,1)  = 0.0
+	Bounds(2,1)  = 1.4999999999
+	Bounds(1,2)  = 1.5
+	Bounds(2,2)  = 26.5
+	! Boundary Normals
+	BNormal(1,1:2) = -1.0, 0.0
+	BNormal(2,1:2) =  1.0, 0.0
+	! Boundary Nodes
+	BNode(1:2)     =  0,264
+/
+	

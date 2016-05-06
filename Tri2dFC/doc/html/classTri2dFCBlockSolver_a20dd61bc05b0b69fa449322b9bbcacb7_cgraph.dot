@@ -1,0 +1,11 @@
+digraph "Tri2dFCBlockSolver::rhsBoundary"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCBlockSolver\l::rhsBoundary",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCSystem::rhsBCVector",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSystem.html#aaffe80bd7da8e65fc96ee663fb4ebadc",tooltip="Provides the BC Vector (boundary residual). (Neumann gradient conditions to be added soon) ..."];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCSystem::rhsBCSelection\lMatrix",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSystem.html#a83c3d28e61f9587ccc2b0ca5d835d40e",tooltip="Provides the BC selection matrix. "];
+}

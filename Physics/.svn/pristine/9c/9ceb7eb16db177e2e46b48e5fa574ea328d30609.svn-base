@@ -1,0 +1,6 @@
+FORTRANOBJS	= Fortran/inputSTATEReadIdealGas.o		\
+		  Fortran/inputTRANSPORTReadSuth.o		\
+		  Fortran/inputSOLUTIONReadFreeStream.o		\
+		  Fortran/inputSOLUTIONReadPerturb.o		\
+		  Fortran/inputSOLUTIONReadMms2d.o		\
+		  Fortran/inputSOLUTIONReadMms3d.o

@@ -1,0 +1,112 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsInviscid()
+{
+  if (order == 1 || order == 2){ //Galerkin
+    // contributions from interior edges
+    int n1,n2;
+    double a=.5,b=.5,Ax,Ay,fi[nq];
+    for (int n=0; n<nEdge; n++){
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = area(n,0);
+      Ay     = area(n,1);
+      sys->rhsInvFlux(1,a,b,&Ax,&Ay,&q(n1,0),&q(n2,0),
+		      &qa(n1,0),&qa(n2,0),&fi[0]);
+      for (int k=0; k<nq; k++){
+	r(n1,k) += fi[k];
+	r(n2,k) -= fi[k];
+      }}
+
+
+    // contributions from boundary edges
+    int m=0;
+    a = 5./6.;
+    b = 1./6.;
+    for (int n=nEdge-nEdgeBd; n<nEdge; n++){
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = areaBd(m  ,0);
+      Ay     = areaBd(m++,1);
+      sys->rhsInvFlux(1,a,b,&Ax,&Ay,&q(n1,0),&q(n2,0),
+		      &qa(n1,0),&qa(n2,0),&fi[0]);
+      for (int k=0; k<nq; k++) r(n1,k) += fi[k];
+      sys->rhsInvFlux(1,b,a,&Ax,&Ay,&q(n1,0),&q(n2,0),
+		      &qa(n1,0),&qa(n2,0),&fi[0]);
+      for (int k=0; k<nq; k++) r(n2,k) += fi[k];
+    }}
+
+
+  else{ // 3rd order correction method
+    // compute fluxes and gradient of the fluxes
+    Array2D<double> f(nNode,nq),g(nNode,nq);
+    Array3D<double> fx(nNode,2,nq),gx(nNode,2,nq);
+    sys->rhsInvFluxX(nNode,&q(0,0),&qa(0,0),&f(0,0));
+    sys->rhsInvFluxY(nNode,&q(0,0),&qa(0,0),&g(0,0));
+    gradient(nq,&f(0,0),&fx(0,0,0));
+    gradient(nq,&g(0,0),&gx(0,0,0));
+
+
+    // compute limiter
+    //if (!limiterComputed) limit();
+    //limiterComputed = true;
+
+
+    int n1,n2,m=0;
+    double dx,dy,Ax,Ay,cf,cg,fk,a=.5;
+    for (int n=0; n<nEdge; n++){
+      n1 = edge(n,0);
+      n2 = edge(n,1);
+      dx = .5*(x(n2,0)-x(n1,0));
+      dy = .5*(x(n2,1)-x(n1,1));
+      Ax = a*area(n,0);
+      Ay = a*area(n,1);
+      for (int k=0; k<nq; k++){
+	/*
+	cf       =(dx*(fx(n2,0,k)-fx(n1,0,k))+
+		   dy*(fx(n2,1,k)-fx(n1,1,k)))*lim(n,k);
+	cg       =(dx*(gx(n2,0,k)-gx(n1,0,k))+
+		   dy*(gx(n2,1,k)-gx(n1,1,k)))*lim(n,k);
+	*/
+	cf       = dx*(fx(n2,0,k)-fx(n1,0,k))+
+		   dy*(fx(n2,1,k)-fx(n1,1,k));
+	cg       = dx*(gx(n2,0,k)-gx(n1,0,k))+
+		   dy*(gx(n2,1,k)-gx(n1,1,k));
+	fk       = Ax*(f(n1,k)+f(n2,k)-cf)+Ay*(g(n1,k)+g(n2,k)-cg);
+	r(n1,k) += fk;
+	r(n2,k) -= fk;
+      }}
+
+    a = 1./6.;
+    for (int n=nEdge-nEdgeBd; n<nEdge; n++){
+      n1 = edge(n,0);
+      n2 = edge(n,1);
+      dx = .5*(x(n2,0)-x(n1,0));
+      dy = .5*(x(n2,1)-x(n1,1));
+      Ax = a*areaBd(m  ,0);
+      Ay = a*areaBd(m++,1);
+      for (int k=0; k<nq; k++){
+	/*
+	cf       =(dx*(fx(n2,0,k)-fx(n1,0,k))+
+		   dy*(fx(n2,1,k)-fx(n1,1,k)))*lim(n,k);
+	cg       =(dx*(gx(n2,0,k)-gx(n1,0,k))+
+		   dy*(gx(n2,1,k)-gx(n1,1,k)))*lim(n,k);
+	*/
+	cf       = dx*(fx(n2,0,k)-fx(n1,0,k))+
+		   dy*(fx(n2,1,k)-fx(n1,1,k));
+	cg       = dx*(gx(n2,0,k)-gx(n1,0,k))+
+		   dy*(gx(n2,1,k)-gx(n1,1,k));
+	fk       = Ax*(5.*f(n1,k)+f(n2,k)-cf)+Ay*(5.*g(n1,k)+g(n2,k)-cg);
+	r(n1,k) += fk;
+	fk       = Ax*(f(n1,k)+5.*f(n2,k)-cf)+Ay*(g(n1,k)+5.*g(n2,k)-cg);
+	r(n2,k) += fk;
+      }}
+
+
+    f.deallocate();
+    g.deallocate();
+    fx.deallocate();
+    gx.deallocate();
+  }
+}

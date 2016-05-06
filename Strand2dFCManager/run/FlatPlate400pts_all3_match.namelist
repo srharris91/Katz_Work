@@ -1,0 +1,100 @@
+&Strand2dFCManager
+    meshFile        ='Shauns_400pts_1.mesh'
+	nLevels			= 3
+	meshOrders(1:3)	= 1,1,1
+	surfDist		= 1 !1=uniform, 2=Chebychev
+    strandDist 	 	= 3 !1=uniform, 2=geometric, 3=hyp. tan.
+	perturb			= .0
+    nStrandNode		= 32 !set to 0 to use stretchRatio instead
+    wallSpacing     = .001
+    strandLength    = 5.
+    stretchRatio    = 1.1
+    deltaSmooth     =-.0001 !negative for no smoothing
+    iplotmesh       = 1 !0 = no output grid file
+                            !1 = write Paraview grid file
+/
+
+&numerics
+	iPrint		= 1
+	iTest		= 1
+	iDebug		= 1
+	iConvFile	= 1
+	iSolnFile	= 1
+	iResdFile	= 1
+	iErrFile	= 1
+	iSurfFile	= 1
+	standAlone	= 1
+	restartStep	= 0
+	nRestart	= 0
+	nOutput		= 1
+	nSteps		= 0
+	nPseudoSteps	= 0
+	nPseudoSteps0	= 200000
+	nLinearSteps	= 1
+	nRKStages	= 5
+	implicit	= 0
+        surfOrders(1:3) = 2,1,1
+        strandOrders(1:3) = 2,1,1
+        gradMethod      = 0 !0=quad., 1=cub., 2=cub./quad. bnd.
+	mgCycle		= 1 !1=v-cycle, 2=w-cycle
+	limiter		= 1 !0=no limiter, 1=limiter
+	timeAcc		= 2
+	dtUnsteady	= 0.
+	cfl		= 4.
+	vnn		= 4.
+	smooth		= .4
+	convLimit	= 1.D-14
+	relax		= 1
+	systemType      = 'SPLam' !SPLam: single phase laminar viscous
+/
+
+&SPLam
+        inviscid        = 1
+        dissipation     = 1
+        viscous         = 1
+        solution        = 'freeStream' !perturb: perturbed initial state
+                                    !freeStream: freestream
+                                    !mms2d: manufactured solution
+                                    !ringleb:Ringleb flow
+        state(1)        = 'idealGas' !idealGas: idealgas
+        transport(1)    = 'sutherland' !sutherland:Sutherland'sLaw
+        nBpatches       = 5
+        bType(1)        = 'inviscidWall'
+        bValue(1:4,1)   = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+        bType(2)        = 'viscousWall'
+        bValue(1:4,2)   = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+        bType(3)        = 'farField'
+        bValue(1:4,3)   = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+        bType(4)        = 'outflow'
+        bValue(1:4,4)   = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+        bType(5)        = 'farField'
+        bValue(1:4,5)   = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+/
+
+&freeStream
+        rValue(1:4)     = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+/
+
+&perturb
+        rValue(1:4)     = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+        pert            = .1
+/
+
+&mms2d
+        rValue(1:4)     = 101325.,69.44499982000144,0.,300. !(p,u,v,T)
+        period          = 10.
+        amplitude       = .1
+/
+
+&idealGas
+        rGas(1)         = 287.06
+        gamma(1)        = 1.4
+/
+
+&sutherland
+        mu0(1)          = .00817078265491726 !Re=10000.
+        t0(1)           = 300.
+        s(1)            = 110.4
+        prn(1)          = .75
+        prnT(1)         = .9
+/

@@ -1,0 +1,36 @@
+SPLAMOBJS	= System/SPLam/Tri2dFCSPLam.o			\
+                  System/SPLam/inputRead.o                      \
+                  System/SPLam/prepSetup.o                      \
+                  System/SPLam/initFlow.o                      	\
+                  System/SPLam/initSource.o                     \
+                  System/SPLam/stepQAdd.o                      	\
+                  System/SPLam/stepInvEigenvalue.o              \
+                  System/SPLam/stepVisEigenvalue.o              \
+                  System/SPLam/rhsInvFlux.o                     \
+                  System/SPLam/rhsInvFluxX.o                    \
+                  System/SPLam/rhsInvFluxY.o                    \
+                  System/SPLam/rhsDisFlux.o                     \
+                  System/SPLam/rhsVisFluxGalerkin.o             \
+                  System/SPLam/rhsVisFlux.o                     \
+                  System/SPLam/rhsVisFluxX.o                    \
+                  System/SPLam/rhsVisFluxY.o                    \
+                  System/SPLam/outputSolution.o                 \
+                  System/SPLam/outputSurfaceForces.o            \
+                  System/SPLam/outputSurfaceSolution.o          \
+		  System/SPLam/finalize.o			\
+		  System/SPLam/bcConflict.o			\
+		  System/SPLam/rhsBCVector.o			\
+		  System/SPLam/lhsBCVectorSelfJacobian.o	\
+		  System/SPLam/rhsBCSelectionMatrix.o		\
+                  System/SPLam/Tri2dFCSPLamInputRead.o          \
+                  System/SPLam/Tri2dFCSPLamBc.o                 \
+                  System/SPLam/Tri2dFCSPLamBcInviscidWall.o     \
+                  System/SPLam/Tri2dFCSPLamBcViscousWall.o      \
+                  System/SPLam/Tri2dFCSPLamBcInflow.o           \
+                  System/SPLam/Tri2dFCSPLamBcOutflow.o          \
+                  System/SPLam/Tri2dFCSPLamBcFarField.o         \
+                  System/SPLam/Tri2dFCSPLamBcDirichlet.o        \
+                  System/SPLam/Tri2dFCSPLamBcFrozen.o           \
+                  System/SPLam/Tri2dFCSPLamBcPeriodic.o         \
+                  System/SPLam/Tri2dFCSPLamBcSymmetry.o		\
+                  System/SPLam/Tri2dFCSPLamBcNothing.o

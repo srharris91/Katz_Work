@@ -1,0 +1,179 @@
+!> \brief
+!! This program serves reads the volume mesh file.
+!!
+!! Comments:
+!!
+!! Versions:
+!!   - 1.0 Katz 05/06/2010
+!!
+!! Additional notes:\par
+!!   none
+!!
+!! Source code:
+!!   \include plotblock.F90
+
+
+SUBROUTINE plotblock(id, &
+                     nFaces, &
+                     nNodes, &
+                     nGfaces, &
+                     nGnodes, &
+                     nPStr, &
+                     face, &
+                     xStr, &
+                     xSrf, &
+                     nClip, &
+                     fClip, &
+                     pv)
+
+IMPLICIT NONE
+
+
+INTEGER,INTENT(IN   ) :: id, &
+                         nFaces, &
+                         nNodes, &
+                         nGfaces, &
+                         nGnodes, &
+                         nPstr
+INTEGER,INTENT(IN   ),DIMENSION(2,nFaces) :: face
+REAL,   INTENT(IN   ),DIMENSION(0:nPStr ) :: xStr
+REAL,   INTENT(IN   ),DIMENSION(2,nNodes) :: xSrf
+INTEGER,INTENT(IN   ),DIMENSION(  nNodes) :: nClip
+INTEGER,INTENT(IN   ),DIMENSION(  nFaces) :: fClip
+REAL,   INTENT(IN   ),DIMENSION(2,nNodes) :: pv
+CHARACTER(80) :: filename,char1,char2
+INTEGER :: iu,i,k,n,nCell,nPoint,n1,n2,j
+INTEGER,ALLOCATABLE,DIMENSION(:,:) :: flag,przm
+REAL    :: xn,yn,nx,ny,ds
+REAL,   ALLOCATABLE,DIMENSION(:,:) :: x
+
+k = 0
+DO n=1,nNodes-nGnodes
+   k = k+nClip(n)+1
+END DO
+nPoint = k
+k   = 0
+DO n=1,nFaces-nGfaces
+   k = k+fClip(n)
+END DO
+nCell = k
+
+! form an unstructured set of cells
+ALLOCATE(x(2,nPoint),flag(0:nPStr,nNodes),przm(4,nCell))
+k = 0
+DO n=1,nNodes-nGnodes
+   xn        = xsrf(1,n)
+   yn        = xsrf(2,n)
+   nx        = pv(1,n)
+   ny        = pv(2,n)
+DO i=0,nClip(n)
+   k         = k+1
+   flag(i,n) = k
+   ds        = xStr(i)
+   x(1,k)    = xn+ds*nx
+   x(2,k)    = yn+ds*ny
+END DO
+END DO
+
+
+k = 0
+DO n=1,nFaces-nGfaces
+   n1        = face(1,n)
+   n2        = face(2,n)
+DO i=1,fClip(n)
+   k         = k+1
+   przm(1,k) = flag(i-1,n1)
+   przm(2,k) = flag(i-1,n2)
+   przm(3,k) = flag(i  ,n2)
+   przm(4,k) = flag(i  ,n1)
+END DO
+END DO
+
+
+!do j = 1,size(x,2)
+		!write(*,*) "node,x,y:",j, x(:,j)
+!end do
+
+
+! write to *.vtk file
+iu = 11
+n = id
+IF (                  n < 10     ) WRITE(filename,'(I1)')n
+IF (n >= 10     .AND. n < 100    ) WRITE(filename,'(I2)')n
+IF (n >= 100    .AND. n < 1000   ) WRITE(filename,'(I3)')n
+IF (n >= 1000   .AND. n < 10000  ) WRITE(filename,'(I4)')n
+IF (n >= 10000  .AND. n < 100000 ) WRITE(filename,'(I5)')n
+IF (n >= 100000 .AND. n < 1000000) WRITE(filename,'(I6)')n
+char1 = 'partition'//TRIM(filename)//'.vtu'
+OPEN(iu,FILE=TRIM(char1),STATUS='replace')
+WRITE(iu,'(A)')'<?xml version="1.0"?>'
+WRITE(iu,'(A)')'<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">'
+WRITE(iu,'(A)')'<UnstructuredGrid>'
+
+n      = nPoint
+IF (                     n < 10        ) WRITE(char1,'(I1)')n
+IF (n >= 10        .AND. n < 100       ) WRITE(char1,'(I2)')n
+IF (n >= 100       .AND. n < 1000      ) WRITE(char1,'(I3)')n
+IF (n >= 1000      .AND. n < 10000     ) WRITE(char1,'(I4)')n
+IF (n >= 10000     .AND. n < 100000    ) WRITE(char1,'(I5)')n
+IF (n >= 100000    .AND. n < 1000000   ) WRITE(char1,'(I6)')n
+IF (n >= 1000000   .AND. n < 10000000  ) WRITE(char1,'(I7)')n
+IF (n >= 10000000  .AND. n < 100000000 ) WRITE(char1,'(I8)')n
+IF (n >= 100000000 .AND. n < 1000000000) WRITE(char1,'(I9)')n
+
+n     = nCell
+IF (                     n < 10        ) WRITE(char2,'(I1)')n
+IF (n >= 10        .AND. n < 100       ) WRITE(char2,'(I2)')n
+IF (n >= 100       .AND. n < 1000      ) WRITE(char2,'(I3)')n
+IF (n >= 1000      .AND. n < 10000     ) WRITE(char2,'(I4)')n
+IF (n >= 10000     .AND. n < 100000    ) WRITE(char2,'(I5)')n
+IF (n >= 100000    .AND. n < 1000000   ) WRITE(char2,'(I6)')n
+IF (n >= 1000000   .AND. n < 10000000  ) WRITE(char2,'(I7)')n
+IF (n >= 10000000  .AND. n < 100000000 ) WRITE(char2,'(I8)')n
+IF (n >= 100000000 .AND. n < 1000000000) WRITE(char2,'(I9)')n
+filename = '<Piece NumberOfPoints="'//TRIM(char1)//'" NumberOfCells="'//TRIM(char2)//'">'
+WRITE(iu,'(A)')TRIM(filename)
+WRITE(iu,'(A)')'<CellData Scalars="ID">'
+WRITE(iu,'(A)')'<DataArray type="Int32" Name="ID" format="ascii">'
+DO n=1,nCell
+   WRITE(iu,*)id
+END DO
+WRITE(iu,'(A)')'</DataArray>'
+WRITE(iu,'(A)')'</CellData>'
+WRITE(iu,'(A)')'<Points>'
+WRITE(iu,'(A)')'<DataArray type="Float32" NumberOfComponents="3" format="ascii">'
+DO n=1,nPoint
+   WRITE(iu,*)x(:,n),0.
+END DO
+WRITE(iu,'(A)')'</DataArray>'
+WRITE(iu,'(A)')'</Points>'
+WRITE(iu,'(A)')'<Cells>'
+WRITE(iu,'(A)')'<DataArray type="Int32" Name="connectivity" format="ascii">'
+DO n=1,nCell
+   WRITE(iu,*)przm(1,n)-1,przm(2,n)-1,przm(3,n)-1,przm(4,n)-1
+END DO
+WRITE(iu,'(A)')'</DataArray>'
+WRITE(iu,'(A)')'<DataArray type="Int32" Name="offsets" format="ascii">'
+k = 0
+DO n=1,nCell
+   k = k+4
+   WRITE(iu,*)k
+END DO
+WRITE(iu,'(A)')'</DataArray>'
+WRITE(iu,'(A)')'<DataArray type="Int32" Name="types" format="ascii">'
+DO n=1,nCell
+   k = 9
+   WRITE(iu,*)k
+END DO
+WRITE(iu,'(A)')'</DataArray>'
+WRITE(iu,'(A)')'</Cells>'
+WRITE(iu,'(A)')'</Piece>'
+WRITE(iu,'(A)')'</UnstructuredGrid>'
+WRITE(iu,'(A)')'</VTKFile>'
+CLOSE(iu)
+
+
+DEALLOCATE(x,flag,przm)
+
+
+END SUBROUTINE plotblock

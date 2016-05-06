@@ -1,0 +1,13 @@
+digraph "Tri2dFCBlockSolver::update"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCBlockSolver\l::update",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCSystem::lhsBCVector\lSelfJacobian",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSystem.html#a2782dc785152b7d66bfb03fccb3030c6",tooltip="Provides the Jacobian of the BC Vector with respect to Q at the boundary. (Neumann gradient condition..."];
+  Node1 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCSystem::rhsBCSelection\lMatrix",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSystem.html#a83c3d28e61f9587ccc2b0ca5d835d40e",tooltip="Provides the BC selection matrix. "];
+  Node1 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="Tri2dFCSystem::stepQAdd",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSystem.html#a8a2f10855ce8633e3c7fe3795170a5c1",tooltip="Computes additional variables as a function of Q. "];
+}

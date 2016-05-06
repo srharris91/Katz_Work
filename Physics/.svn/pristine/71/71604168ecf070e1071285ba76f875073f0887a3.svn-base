@@ -1,0 +1,225 @@
+#include "IdealGas.h"
+
+///\cond extern
+extern "C"
+{
+  void inputstatereadidealgas_(const int&,
+			       const char*,
+			       const int&,
+			       double&,
+			       double&);
+}
+///\endcond
+
+
+// [IdealGas]
+IdealGas::IdealGas()
+{
+  rGas  = 0.;
+  gamma = 0.;
+}
+// [IdealGas]
+
+
+// [~IdealGas]
+IdealGas::~IdealGas()
+{
+}
+// [~IdealGas]
+
+
+// [initialize]
+void IdealGas::initialize(const int& comp,
+			  const string& inputFile)
+{
+  int i=comp+1;//Fortran is 1-based
+  inputstatereadidealgas_(inputFile.size(),
+			  inputFile.c_str(),
+			  i,
+			  rGas,
+			  gamma);
+}
+// [initialize]
+
+
+// [getGamma]
+void IdealGas::getGamma(const int& npts,
+			const double* p,
+			const double* t,
+			double* gamma0)
+{
+  for (int n=0; n<npts; n++) gamma0[n] = gamma;
+}
+// [getGamma]
+
+
+// [getGamma2]
+void IdealGas::getGamma(double* gamma0)
+{
+  gamma0[0] = gamma;
+}
+// [getGamma2]
+
+
+// [getRGas]
+void IdealGas::getRGas(double* rGas0)
+{
+  rGas0[0] = rGas;
+}
+// [getRGas]
+
+
+// [getCp]
+void IdealGas::getCp(const int& npts,
+		     const double* p,
+		     const double* t,
+		     double* Cp)
+{
+  double a = gamma*rGas/(gamma-1.);
+  for (int n=0; n<npts; n++) Cp[n] = a;
+}
+// [getCp]
+
+
+// [getSoundSpeed]
+void IdealGas::getSoundSpeed(const int& npts,
+			     const double* p,
+			     const double* t,
+			     double* c)
+{
+  for (int n=0; n<npts; n++) c[n] = sqrt(gamma*rGas*t[n]);
+}
+// [getSoundSpeed]
+
+
+// [getRhoP]
+void IdealGas::getRhoP(const int& npts,
+		    const double* p,
+		    const double* t,
+		    double* rp)
+{
+  double a = 1./rGas;
+  for (int n=0; n<npts; n++) rp[n] = a/t[n];
+}
+// [getRhoP]
+
+
+// [getRhoT]
+void IdealGas::getRhoT(const int& npts,
+		    const double* p,
+		    const double* t,
+		    double* rt)
+{
+  double a =-1./rGas;
+  for (int n=0; n<npts; n++) rt[n] = a*p[n]/(t[n]*t[n]);
+}
+// [getRhoT]
+
+
+// [getHP]
+void IdealGas::getHP(const int& npts,
+		  const double* p,
+		  const double* t,
+		  double* hp)
+{
+  for (int n=0; n<npts; n++) hp[n] = 0.;
+}
+// [getHP]
+
+
+// [getHT]
+void IdealGas::getHT(const int& npts,
+		  const double* p,
+		  const double* t,
+		  double* ht)
+{
+  double a=gamma*rGas/(gamma-1.);
+  for (int n=0; n<npts; n++) ht[n] = a;
+}
+// [getHT]
+
+
+// [getDensity]
+void IdealGas::getDensity(const int& npts,
+			  const double* p,
+			  const double* t,
+			  double* rho)
+{
+  for (int n=0; n<npts; n++) rho[n] = p[n]/(rGas*t[n]);
+}
+// [getDensity]
+
+
+// [getDensityX]
+void IdealGas::getDensityX(const int& npts,
+			   const double* p,
+			   const double* t,
+			   const double* px,
+			   const double* tx,
+			   double* rhox)
+{
+  for (int n=0; n<npts; n++)
+    rhox[n] = 1./(rGas*t[n])*(px[n]-p[n]/t[n]*tx[n]);
+}
+// [getDensityX]
+
+
+// [getDensityY]
+void IdealGas::getDensityY(const int& npts,
+			   const double* p,
+			   const double* t,
+			   const double* py,
+			   const double* ty,
+			   double* rhoy)
+{
+  for (int n=0; n<npts; n++)
+    rhoy[n] = 1./(rGas*t[n])*(py[n]-p[n]/t[n]*ty[n]);
+}
+// [getDensityY]
+
+
+// [getEnthalpy]
+void IdealGas::getEnthalpy(const int& npts,
+			   const double* p,
+			   const double* t,
+			   double* h)
+{
+  double gmg = rGas*gamma/(gamma-1.);
+  for (int n=0; n<npts; n++) h[n] = gmg*t[n];
+}
+// [getEnthalpy]
+
+
+// [getEnthalpyX]
+void IdealGas::getEnthalpyX(const int& npts,
+			    const double* p,
+			    const double* t,
+			    const double* px,
+			    const double* tx,
+			    double* hx)
+{
+  double gmg = rGas*gamma/(gamma-1.);
+  for (int n=0; n<npts; n++) hx[n] = gmg*tx[n];
+}
+// [getEnthalpyX]
+
+
+// [getEnthalpyY]
+void IdealGas::getEnthalpyY(const int& npts,
+			    const double* p,
+			    const double* t,
+			    const double* py,
+			    const double* ty,
+			    double* hy)
+{
+  double gmg = rGas*gamma/(gamma-1.);
+  for (int n=0; n<npts; n++) hy[n] = gmg*ty[n];
+}
+// [getEnthalpyY]
+
+
+// [finalize]
+void IdealGas::finalize()
+{
+}
+// [finalize]

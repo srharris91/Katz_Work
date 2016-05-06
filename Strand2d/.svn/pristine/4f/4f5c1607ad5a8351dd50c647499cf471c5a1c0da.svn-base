@@ -1,0 +1,71 @@
+To compile strand3d:
+
+0. Before strand3d may be compiled, it is necessary to compile the
+   strandGen meshing layer library. Go the the main directory of
+   strandGen and edit Make.incl:
+
+   STRANDGEN = directory where strandGen is located
+   F90, FFLAGS, CXX, CXXFLAGS, LDFLAGS, LDLIBS as desired   
+   ARCCFD = directory where the strand3d solver resides
+
+   Then type "make libr" to create the strandGen library. See the README
+   in strandGen for a detailed description of the major components of
+   strandGen.
+
+1. Go to the main strand3d directory.
+
+2. Edit Make.rules for your system.  Here are the descriptions:
+
+   EXEC = name of executable that will be placed in the "run"
+   directory.
+   TECLIB = library from Tecplot distribution needed to write Tecplot
+   unformatted files.  Note a linux and Mac version are included in
+   the "lib" directory.
+   ARCCFDLIB = name of library created when strand3d is compiled. This
+   library is moved to the "lib" directory and links with
+   src/main/Main.C when used in stand alone mode.
+   STRANDGEN = location of strandGen meshing layer
+   ARCCFD = location of strand3d
+   STRANDGENLIB = name of the library containing the meshing layer
+   routines. This library is found in $(STRANDGEN)/lib/
+
+   Other compilers and flags as needed.
+
+3. Type "make cdriver" to create the $(ARCCFDLIB) and link with
+   the strandGen library and src/main/Main.C to form a stand alone
+   executable in the "run" directory.
+
+
+   
+To run strand3d:
+
+1. In the "run" directory, type "./strand3d_c". Make sure the following files
+   are present:
+
+      mesh.strand3d - unformatted surface mesh file
+      strand.input - inputs to strandGen meshing layer
+      solver.input - inputs to strand3d solver
+      bc.channel - contains boundary condition specification for
+		   each boundary and surface patch. Note: the name of
+		   this file is specified in solver.input.
+
+   The inputs in strand.input are described in the strandGen/notes directory.
+
+   The inputs in solver.input and the boundary condition file are described
+   in the strand3d/notes directory.
+
+2. Several Tecplot files are optionally output upon execution of the code:
+
+   surfMesh.plt - surface mesh
+   volMesh.plt - volume mesh
+   partitions.plt - plot of each surface partition (under progress)
+   convNB.dat - convergence history (delta Q)
+   surface.000000.plt - plot of surface quantities
+   solution.000000.plt - field plot of Q
+   residual.000000.plt - field plot of delta Q
+   error.000000.plt - field plot of error (if using an exact/MMS solution)
+
+
+
+
+

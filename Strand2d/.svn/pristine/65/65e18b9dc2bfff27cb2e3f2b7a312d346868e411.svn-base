@@ -1,0 +1,123 @@
+#include "StrandSPTurbSA.h"
+#include <math.h>
+
+
+void StrandSPTurbSA::lhsSourceJacobian(const int& npts,
+				       const double* v,
+				       const double* q,
+				       const double* qa,
+				       const double* qx,
+				       const double* qax,
+				       double* M)
+{
+  int iq,iqa,iqx,iqy,iqax,iqay,iM;
+  double rho,rr,rnu,nu,mu,dw,rx,ry,vx,uy,nux,nuy,
+    S,chi,fv1,fv2,St,r,g,fw,a,b,c,cw36,drdq1,drdq5,dgdq1,dgdq5,dfwdq1,dfwdq5,
+    dStdq1,dStdq5,dfv2dq5,dfv1dq5,cv13,a1P,a5P,a1D,a5D,a1T,a5T;
+  
+  for (int n=0; n<npts; n++){
+    iq       = nq*n;
+    iqa      = nqa*n;
+    iqx      = nq*n*2;
+    iqy      = nq*n*2+nq;
+    iqax     = nqa*n*2;
+    iqay     = nqa*n*2+nqa;
+    iM       = nq*nq*n;
+    rho      = q[iq  ];
+    rr       = 1./rho;
+    rnu      = q[iq+4];
+    nu       = qa[iqa+4];
+    mu       = qa[iqa+5];
+    dw       = qa[iqa+7];
+    rx       = qax[iqx];
+    ry       = qax[iqy];
+    vx       = qax[iqax+2];
+    uy       = qax[iqay+1];
+    nux      = qax[iqax+4];
+    nuy      = qax[iqay+4];
+
+    // production
+    S        = fabs(uy-vx);
+    chi      = rnu/mu;
+    cv13     = pow(cv1,3.);
+    fv1      = pow(chi,3.)/(pow(chi,3.)+cv13);
+    fv2      = 1.-chi/(1.+chi*fv1);
+    a        = 1./(kappa*kappa*dw*dw);
+    St       = S+nu*fv2*a;
+    dfv1dq5  = 3.*chi*chi/(mu*(pow(chi,3.)+cv13))*(1.-fv1);
+    dfv2dq5  = chi/pow((1.+chi*fv1),2.)*(chi*dfv1dq5+fv1/mu)
+             - 1./(mu*(1.+chi*fv1));
+    dStdq1   =-rr*a*fv2*nu;
+    dStdq5   = rr*a*(fv2+rnu*dfv2dq5);
+    a1P      = 0.;
+    a5P      = cb1*(1.-ct3)*S;
+    if (rnu >= 0.){
+      a1P    = cb1*rnu*dStdq1;
+      a5P    = cb1*(St+rnu*dStdq5);
+    }
+
+    // destruction
+    a = 1.;
+    b = 1.;
+    if (rnu >= 0.){
+      cw36   = pow(cw3,6.);
+      a      = 1./(kappa*kappa*dw*dw);
+      r      = nu*a/St;
+      g      = r+cw2*(pow(r,6.)-r);
+      c      = (1.+cw36)/(pow(g,6.)+cw36);
+      fw     = g*pow(c,1./6.);
+      drdq1  =-nu*rr*a/(St*St)*(St+rho*dStdq1);
+      drdq5  =    rr*a/(St*St)*(St-rnu*dStdq5);
+      dgdq1  = drdq1*(1.+cw2*(6.*pow(r,5.)-1.));
+      dgdq5  = drdq5*(1.+cw2*(6.*pow(r,5.)-1.));
+      a      =-6.*pow(g,5.)*dgdq1*(1.+cw36)/pow((pow(g,6.)+cw36),2.);
+      b      =-6.*pow(g,5.)*dgdq5*(1.+cw36)/pow((pow(g,6.)+cw36),2.);
+      dfwdq1 = g/6.*pow(c,-5./6.)*a+pow(c,1./6.)*dgdq1;
+      dfwdq5 = g/6.*pow(c,-5./6.)*b+pow(c,1./6.)*dgdq5;
+      a      = rho*dfwdq1-fw;
+      b      =-.5*rnu*dfwdq5-fw;
+    }
+    a1D      = cw1*nu*nu/(dw*dw)*a;
+    a5D      =-cw1*2.*nu/(dw*dw)*b;
+
+    // other term
+    a        = nux*rx +nuy*ry;
+    b        = nux*nux+nuy*nuy;
+    a1T      = cb2/sigma*(2.*nu*rr*a-b);
+    a5T      =-cb2/sigma*2.*rr*a;
+    //a1T      =-a1T;
+    //a5T      =-a5T;
+    a1T      =-cb2*nu*nu/(sigma*v[n]);
+    a5T      = cb2*2.*nu/(sigma*v[n]);
+
+    M[iM   ] = 0.;
+    M[iM+1 ] = 0.;
+    M[iM+2 ] = 0.;
+    M[iM+3 ] = 0.;
+    M[iM+4 ] = 0.;
+
+    M[iM+5 ] = 0.;
+    M[iM+6 ] = 0.;
+    M[iM+7 ] = 0.;
+    M[iM+8 ] = 0.;
+    M[iM+9 ] = 0.;
+
+    M[iM+10] = 0.;
+    M[iM+11] = 0.;
+    M[iM+12] = 0.;
+    M[iM+13] = 0.;
+    M[iM+14] = 0.;
+
+    M[iM+15] = 0.;
+    M[iM+16] = 0.;
+    M[iM+17] = 0.;
+    M[iM+18] = 0.;
+    M[iM+19] = 0.;
+
+    M[iM+20] = a1P-a1D+a1T;
+    M[iM+21] = 0.;
+    M[iM+22] = 0.;
+    M[iM+23] = 0.;
+    M[iM+24] = a5P-a5D+a5T;
+  }
+}

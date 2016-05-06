@@ -1,0 +1,30 @@
+#include "StrandBlockSolver.h"
+
+
+void StrandBlockSolver::rhsSourceMG(const int& mode,
+				    const int& sweep,
+				    const int& linearStep)
+{
+  if (linearStep == 0 && sweep == 0 && (mode == 2 || mode == 3)){
+    double a,b,c;
+    for (int n=0; n<nFaces+nBedges; n++){
+      for (int j=0; j<nPstr+2; j++)
+	for (int k=0; k<nq; k++){
+	  a = 1.;
+	  if (fwc(k,j,n) < 0.) a = -1.;
+	  b = fabs(fwc(k,j,n));
+	  c = fabs(r  (k,j,n));
+	  if (c < b){
+	    b = c;
+	    a = 1.;
+	    if (r(k,j,n) < 0.) a = -1.;
+	  }
+	  fwc(k,j,n) = relax*a*b-r(k,j,n);
+	  //fwc(k,j,n) = relax*fwc(k,j,n)-r(k,j,n);
+	}}}
+
+
+  for (int n=0; n<nFaces+nBedges; n++)
+    for (int j=0; j<fClip(n)+1; j++)
+      for (int k=0; k<nq; k++) r(k,j,n) += fwc(k,j,n);
+}

@@ -1,0 +1,72 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::hessian(const int& npts,
+				 const int& nqp,
+				 const double* p,
+				 double* pxx,
+				 double* pxy,
+				 double* pyy)
+{
+  // FEM Hessian
+  int k1;
+  double jci,xri,yri,xsi,ysi,dx,dy,dxx,dxy,dyy,axx[nqp],axy[nqp],ayy[nqp],a;
+  Array1D<double> sumj(nNode);
+  Array2D<double> px(nne,nqp),py(nne,nqp);
+  sumj.set(0.);
+  for (int n=0; n<npts*nqp; n++) pxx[n] = 0.;
+  for (int n=0; n<npts*nqp; n++) pxy[n] = 0.;
+  for (int n=0; n<npts*nqp; n++) pyy[n] = 0.;
+  for (int n=0; n<nElem; n++){
+    px.set(0.);
+    py.set(0.);
+    for (int i=0; i<nne; i++){
+      jci = jac(n,i);
+      xri = xr(n,i)/jci;
+      yri = yr(n,i)/jci;
+      xsi = xs(n,i)/jci;
+      ysi = ys(n,i)/jci;    
+      for (int j=0; j<nne; j++){
+	dx = lr(i,j)*ysi-ls(i,j)*yri;
+	dy =-lr(i,j)*xsi+ls(i,j)*xri;
+	k1 = elem(n,j)*nqp;
+	for (int k=0; k<nqp; k++){
+	  px(i,k) += p[k1+k]*dx;
+	  py(i,k) += p[k1+k]*dy;
+	}}}
+
+    for (int i=0; i<nne; i++){
+      jci = jac(n,i);
+      xri = xr(n,i);
+      yri = yr(n,i);
+      xsi = xs(n,i);
+      ysi = ys(n,i);
+      for (int k=0; k<nqp; k++) axx[k] = 0.;
+      for (int k=0; k<nqp; k++) axy[k] = 0.;
+      for (int k=0; k<nqp; k++) ayy[k] = 0.;
+      for (int j=0; j<nne; j++){
+	dx = lr(i,j)*ysi-ls(i,j)*yri;
+	dy =-lr(i,j)*xsi+ls(i,j)*xri;
+	for (int k=0; k<nqp; k++){
+	  axx[k] += px(j,k)*dx;
+	  axy[k] += px(j,k)*dy;
+	  ayy[k] += py(j,k)*dy;
+	}}
+      k1 = elem(n,i)*nqp;
+      for (int k=0; k<nqp; k++) pxx[k1+k] += axx[k];
+      for (int k=0; k<nqp; k++) pxy[k1+k] += axy[k];
+      for (int k=0; k<nqp; k++) pyy[k1+k] += ayy[k];
+      sumj(elem(n,i)) += jci;
+    }}
+  for (int n=0; n<nNode; n++){ //normalize Hessian
+    a  = 1./sumj(n);
+    k1 = n*nqp;
+    for (int k=0; k<nqp; k++){
+      pxx[k1+k] *= a;
+      pxy[k1+k] *= a;
+      pyy[k1+k] *= a;
+    }}
+  px.deallocate();
+  py.deallocate();
+  sumj.deallocate();
+}

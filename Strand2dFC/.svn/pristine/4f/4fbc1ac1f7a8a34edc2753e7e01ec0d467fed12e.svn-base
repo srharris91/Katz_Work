@@ -1,0 +1,69 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsInviscid()
+{
+  // surface edge inviscid flux contributions
+  int p1,p2,n1,n2;
+  double a=.5,b=.5,A1[2],A2[2],f[nq];
+  for (int n=0; n<nSurfElem; n++)
+    for (int i=0; i<nElemEdge; i++){
+      p1 = elemEdge(i,0);
+      p2 = elemEdge(i,1);
+      n1 = surfElem(n,p1);
+      n2 = surfElem(n,p2);
+      for (int j=0; j<nStrandNode; j++){
+	A1[0] = yn(n1,j);
+	A1[1] =-xn(n1,j);
+	A2[0] = yn(n2,j);
+	A2[1] =-xn(n2,j);
+	sys->rhsInvFlux(1,a,b,&A1[0],&A2[0],&q(n1,j,0),&q(n2,j,0),
+			&qa(n1,j,0),&qa(n2,j,0),&f[0]);
+	for (int k=0; k<nq; k++){
+	  r(n1,j,k) += f[k];
+	  r(n2,j,k) -= f[k];
+	}}}
+
+  for (int n=0; n<nBndNode; n++){
+    n1 = bndNode(n);
+    for (int j=0; j<nStrandNode; j++){
+      A1[0] = yn(n1,j);
+      A1[1] =-xn(n1,j);
+      sys->rhsInvFlux(1,a,b,&A1[0],&A1[0],&q(n1,j,0),&q(n1,j,0),
+		      &qa(n1,j,0),&qa(n1,j,0),&f[0]);
+      for (int k=0; k<nq; k++) r(n1,j,k) += bndSign(n)*f[k];
+    }}
+
+
+  // strand edge inviscid flux contributions
+  double dnr=1./deltaN;
+  for (int n=0; n<nSurfNode; n++)
+    for (int j=0; j<nStrandNode-1; j++){
+      A1[0] =-ysn(n,j  );
+      A1[1] = xsn(n,j  );
+      A2[0] =-ysn(n,j+1);
+      A2[1] = xsn(n,j+1);
+      sys->rhsInvFlux(1,a,b,&A1[0],&A2[0],&q(n,j,0),&q(n,j+1,0),
+		      &qa(n,j,0),&qa(n,j+1,0),&f[0]);
+      for (int k=0; k<nq; k++){
+	r(n,j  ,k) += dnr*f[k];
+	r(n,j+1,k) -= dnr*f[k];
+      }}
+
+  int j;
+  for (int n=0; n<nSurfNode; n++){
+    j     = 0;
+    A1[0] =-ysn(n,j);
+    A1[1] = xsn(n,j);
+    sys->rhsInvFlux(1,a,b,&A1[0],&A1[0],&q(n,j,0),&q(n,j,0),
+		    &qa(n,j,0),&qa(n,j,0),&f[0]);
+    for (int k=0; k<nq; k++) r(n,j,k) -= dnr*f[k];
+
+    j     = nStrandNode-1;
+    A1[0] =-ysn(n,j);
+    A1[1] = xsn(n,j);
+    sys->rhsInvFlux(1,a,b,&A1[0],&A1[0],&q(n,j,0),&q(n,j,0),
+		    &qa(n,j,0),&qa(n,j,0),&f[0]);
+    for (int k=0; k<nq; k++) r(n,j,k) += dnr*f[k];
+  }
+}

@@ -1,0 +1,78 @@
+#include "FreeStream.h"
+
+///\cond extern
+extern "C"
+{
+  void inputsolutionreadfreestream_(const int&,
+				    const char*,
+				    const int&,
+				    double*);
+}
+///\endcond
+
+
+// [FreeStream]
+FreeStream::FreeStream()
+{
+}
+// [FreeStream]
+
+
+// [~FreeStream]
+FreeStream::~FreeStream()
+{
+}
+// [~FreeStream]
+
+
+// [initialize]
+void FreeStream::initialize(const int& nq0,
+			    const int& ndim0,
+			    const string& inputFile,
+			    State* state0,
+			    Transport* transport0)
+{
+  nq = nq0;
+  ndim = ndim0;
+  rValue = new double[nq];
+  inputsolutionreadfreestream_(inputFile.size(),
+			       inputFile.c_str(),
+			       nq,
+			       rValue);
+  state     = state0;
+  transport = transport0;
+}
+void FreeStream::initialize(const int& nq0,
+			    const int& ndim0,
+			    const string& inputFile)
+{
+  nq = nq0;
+  ndim = ndim0;
+  rValue = new double[nq];
+  inputsolutionreadfreestream_(inputFile.size(),
+			       inputFile.c_str(),
+			       nq,
+			       rValue);
+}
+// [initialize]
+
+
+// [getQ]
+void FreeStream::getQ(const int& npts,
+		      const double* x,
+		      double* q)
+{
+  int i;
+  for (int n=0; n<npts; n++){
+    i = n*nq;
+    for (int k=0; k<nq; k++) q[i+k] = rValue[k];
+  }
+}
+// [Getq]
+
+
+// [finalize]
+void FreeStream::finalize()
+{
+}
+// [finalize]

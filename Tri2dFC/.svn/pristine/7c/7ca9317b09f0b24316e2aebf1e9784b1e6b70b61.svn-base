@@ -1,0 +1,113 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::finalize()
+{
+  orders.deallocate();
+  if (sys){
+    sys->finalize();
+    delete sys;
+    sys = NULL;
+  }
+  if (nfn) delete [] nfn;
+  nfn = NULL;
+  for (int n=0; n<nNodeF; n++){
+    if (nfn1[n]) delete [] nfn1[n];
+    if (nfn2[n]) delete [] nfn2[n];
+    nfn1[n] = NULL;
+    nfn2[n] = NULL;
+  }
+  delete [] nfn1;
+  delete [] nfn2;
+  nfn1 = NULL;
+  nfn2 = NULL;
+  lqCF.deallocate();
+  lqFC.deallocate();
+  nfe.deallocate();
+  nce.deallocate();
+  for (int n=0; n<nTriG; n++){
+    if (triG[n]) delete [] triG[n];
+    triG[n] = NULL;
+  }
+  delete [] triG;
+  triG = NULL;
+  xG.deallocate();
+  edgeBdG.deallocate();
+  elem.deallocate();
+  elemS.deallocate();
+  gNode.deallocate();
+  tri.deallocate();
+  edge.deallocate();
+  edgeE.deallocate();
+  edgeBd.deallocate();
+  nodeBd.deallocate();
+  edgeBdEl.deallocate();
+  x.deallocate();
+  v.deallocate();
+  area.deallocate();
+  areaBd.deallocate();
+  areaE.deallocate();
+  rka.deallocate();
+  rkb.deallocate();
+  bdf.deallocate();
+  iqgrad.deallocate();
+  iqagrad.deallocate();
+  dlim.deallocate();
+  rmsNorm.deallocate();
+  rms.deallocate();
+  lr.deallocate();
+  ls.deallocate();
+  lrr.deallocate();
+  lss.deallocate();
+  lrs.deallocate();
+  xr.deallocate();
+  yr.deallocate();
+  xs.deallocate();
+  ys.deallocate();
+  jac.deallocate();
+  lrS.deallocate();
+  lsS.deallocate();
+  lrrS.deallocate();
+  lssS.deallocate();
+  lrsS.deallocate();
+  xrS.deallocate();
+  yrS.deallocate();
+  xsS.deallocate();
+  ysS.deallocate();
+  jacS.deallocate();
+  ln.deallocate();
+  xrF.deallocate();
+  yrF.deallocate();
+  xsF.deallocate();
+  ysF.deallocate();
+  jacF.deallocate();
+  nxF.deallocate();
+  lF.deallocate();
+  lrF.deallocate();
+  lsF.deallocate();
+  nfe.deallocate();
+  nce.deallocate();
+  outputVarLength.deallocate();
+  outputVars.deallocate();
+
+  q.deallocate();
+  qa.deallocate();
+  q0.deallocate();
+  fwc.deallocate();
+  qn.deallocate();
+  qt.deallocate();
+  radi.deallocate();
+  radv.deallocate();
+  dt.deallocate();
+  r.deallocate();
+  d.deallocate();
+  dn.deallocate();
+  s.deallocate();
+  qx.deallocate();
+  qy.deallocate();
+  qax.deallocate();
+  qay.deallocate();
+  lim.deallocate();
+
+  dataInit();
+}

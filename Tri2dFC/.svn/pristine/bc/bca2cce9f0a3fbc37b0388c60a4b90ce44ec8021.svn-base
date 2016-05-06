@@ -1,0 +1,228 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsViscous()
+{
+  if (order == 1 || order == 2){// Galerkin discretization
+    int n1,n2,n3,nn;
+    double xa,ya,xb,yb,xc,yc,vr,fv[nq],gv[nq];
+    Array2D<double> qc(3,nq),qac(3,nqa),cx(3,2);
+    for (int n=0; n<nTri; n++){
+      n1 = tri(n,0);
+      n2 = tri(n,1);
+      n3 = tri(n,2);
+      xa = x(n1,0);
+      ya = x(n1,1);
+      xb = x(n2,0);
+      yb = x(n2,1);
+      xc = x(n3,0);
+      yc = x(n3,1);
+      vr = xa*(yb-yc)+xb*(yc-ya)+xc*(ya-yb);
+      vr = 2./vr;
+      
+      for (int i=0; i<3; i++){
+	for (int k=0; k<nq ; k++) qc (i,k) = q (n1,k);
+	for (int k=0; k<nqa; k++) qac(i,k) = qa(n1,k);
+	cx(i,0) = .5*(x(n3,1)-x(n2,1));
+	cx(i,1) = .5*(x(n2,0)-x(n3,0));
+	nn      = n1;
+	n1      = n2;
+	n2      = n3;
+	n3      = nn;
+      }
+      
+      sys->rhsVisFluxGalerkin(1,&vr,&cx(0,0),&qc(0,0),&qac(0,0),&fv[0],&gv[0]);
+      //if (n1 >= nNode-nNodeBd)
+	for (int k=0; k<nq ; k++) d(n1,k) -=(cx(0,0)*fv[k]+cx(0,1)*gv[k]);
+	//if (n2 >= nNode-nNodeBd)
+	for (int k=0; k<nq ; k++) d(n2,k) -=(cx(1,0)*fv[k]+cx(1,1)*gv[k]);
+	//if (n3 >= nNode-nNodeBd)
+	for (int k=0; k<nq ; k++) d(n3,k) -=(cx(2,0)*fv[k]+cx(2,1)*gv[k]);
+    }
+    
+    qc.deallocate();
+    qac.deallocate();
+    cx.deallocate();
+
+    /*
+    int n1,n2,n3,nn;
+    double xa,ya,xb,yb,xc,yc,vr,fk,f1[nq],f2[nq],g1[nq],g2[nq];
+    double a,b,xC,yC,xA,yA,Ax,Ay,qxc[nq],qyc[nq],qaxc[nqa],qayc[nqa];
+    for (int n=0; n<nTri; n++){
+      n1 = tri(n,0);
+      n2 = tri(n,1);
+      n3 = tri(n,2);
+      xa = x(n1,0);
+      ya = x(n1,1);
+      xb = x(n2,0);
+      yb = x(n2,1);
+      xc = x(n3,0);
+      yc = x(n3,1);
+      vr = xa*(yb-yc)+xb*(yc-ya)+xc*(ya-yb);
+      vr = 2./vr;
+      
+      for (int k=0; k<nq ; k++) qxc [k] = 0.;
+      for (int k=0; k<nq ; k++) qyc [k] = 0.;
+      for (int k=0; k<nqa; k++) qaxc[k] = 0.;
+      for (int k=0; k<nqa; k++) qayc[k] = 0.;
+      for (int i=0; i<3; i++){
+	Ax = .5*(x(n3,1)-x(n2,1));
+	Ay = .5*(x(n2,0)-x(n3,0));
+	for (int k=0; k<nq ; k++) qxc [k] -= Ax*q (n1,k);
+	for (int k=0; k<nq ; k++) qyc [k] -= Ay*q (n1,k);
+	for (int k=0; k<nqa; k++) qaxc[k] -= Ax*qa(n1,k);
+	for (int k=0; k<nqa; k++) qayc[k] -= Ay*qa(n1,k);
+	nn = n1;
+	n1 = n2;
+	n2 = n3;
+	n3 = nn;
+      }
+      for (int k=0; k<nq ; k++) qxc [k] *= vr;
+      for (int k=0; k<nq ; k++) qyc [k] *= vr;
+      for (int k=0; k<nqa; k++) qaxc[k] *= vr;
+      for (int k=0; k<nqa; k++) qayc[k] *= vr;
+
+      n1 = tri(n,0);
+      n2 = tri(n,1);
+      n3 = tri(n,2);
+      xC =(xa+xb+xc)/3.;
+      yC =(ya+yb+yc)/3.;
+      for (int i=0; i<3; i++){
+	a  = .5;
+	b  = .5;
+	xA = .5*(x(n1,0)+x(n2,0));
+	yA = .5*(x(n1,1)+x(n2,1));
+	Ax = yC-yA;
+	Ay = xA-xC;
+	sys->rhsVisFluxX(1,&q(n1,0),&qa(n1,0),&qxc[0],&qyc[0],
+			 &qaxc[0],&qayc[0],&f1[0]);
+	sys->rhsVisFluxX(1,&q(n2,0),&qa(n2,0),&qxc[0],&qyc[0],
+			 &qaxc[0],&qayc[0],&f2[0]);
+	sys->rhsVisFluxY(1,&q(n1,0),&qa(n1,0),&qxc[0],&qyc[0],
+			 &qaxc[0],&qayc[0],&g1[0]);
+	sys->rhsVisFluxY(1,&q(n2,0),&qa(n2,0),&qxc[0],&qyc[0],
+			 &qaxc[0],&qayc[0],&g2[0]);
+	for (int k=0; k<nq; k++){
+	  fk       = a*(Ax*f1[k]+Ay*g1[k])+b*(Ax*f2[k]+Ay*g2[k]);
+	  d(n1,k) -= fk;
+	  d(n2,k) += fk;
+	}
+	if (n1 >= nNode-nNodeBd && n2 >= nNode-nNodeBd){
+	  a = 5./6.;
+	  b = 1./6.;
+	  Ax = .5*(x(n2,1)-x(n1,1));
+	  Ay = .5*(x(n1,0)-x(n2,0));
+	  for (int k=0; k<nq; k++){
+	    fk       = a*(Ax*f1[k]+Ay*g1[k])+b*(Ax*f2[k]+Ay*g2[k]);
+	    d(n1,k) -= fk;
+	    fk       = b*(Ax*f1[k]+Ay*g1[k])+a*(Ax*f2[k]+Ay*g2[k]);
+	    d(n2,k) -= fk;
+	  }}
+	nn = n1;
+	n1 = n2;
+	n2 = n3;
+	n3 = nn;
+      }}
+    */
+  }
+
+
+  else{// third-order scheme
+    // compute viscous fluxes and gradients, and limiter
+    Array2D<double> f(nNode,nq),fx(nNode,nq),fy(nNode,nq);
+    Array2D<double> g(nNode,nq),gx(nNode,nq),gy(nNode,nq);
+    if (!gradQComputed ) gradient(nNode,nq ,&q (0,0),&qx (0,0),&qy (0,0));
+    if (!gradQaComputed) gradient(nNode,nqa,&qa(0,0),&qax(0,0),&qay(0,0));
+    if (!limiterComputed) limit();
+    sys->rhsVisFluxX(nNode,&q(0,0),&qa(0,0),&qx(0,0),&qy(0,0),
+		     &qax(0,0),&qay(0,0),&f(0,0));
+    sys->rhsVisFluxY(nNode,&q(0,0),&qa(0,0),&qx(0,0),&qy(0,0),
+		     &qax(0,0),&qay(0,0),&g(0,0));
+    gradient(nNode,nq,&f(0,0),&fx(0,0),&fy(0,0));
+    gradient(nNode,nq,&g(0,0),&gx(0,0),&gy(0,0));
+    gradQComputed   = true;
+    gradQaComputed  = true;
+    limiterComputed = true;
+
+
+    // contributions from interior edges
+    int n1,n2;
+    double a=.5,b=.5,Ax,Ay,fi[nq],fk;
+    for (int n=0; n<nEdge; n++){
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = area(n,0);
+      Ay     = area(n,1);
+      for (int k=0; k<nq; k++){
+	fk       = a*(Ax*f(n1,k)+Ay*g(n1,k))+b*(Ax*f(n2,k)+Ay*g(n2,k));
+	d(n1,k) -= fk;
+	d(n2,k) += fk;
+	//if (n1 < nNode-nNodeBd) d(n1,k) -= fk;
+	//if (n2 < nNode-nNodeBd) d(n2,k) += fk;
+      }}
+
+
+    /*
+    // contributions from boundary edges
+    int m=0;
+    a = 5./6.;
+    b = 1./6.;
+    for (int n=nEdge-nEdgeBd; n<nEdge; n++){
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = areaBd(m  ,0);
+      Ay     = areaBd(m++,1);
+      for (int k=0; k<nq; k++){
+	fk       = a*(Ax*f(n1,k)+Ay*g(n1,k))+b*(Ax*f(n2,k)+Ay*g(n2,k));
+	d(n1,k) -= fk;
+	fk       = b*(Ax*f(n1,k)+Ay*g(n1,k))+a*(Ax*f(n2,k)+Ay*g(n2,k));
+	d(n2,k) -= fk;
+      }}
+    */
+
+
+    // add correction terms
+    double dx,dy;
+    for (int n=0; n<nEdge; n++){
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      dx     = .25*(x(n2,0)-x(n1,0));
+      dy     = .25*(x(n2,1)-x(n1,1));
+      Ax     = area(n,0);
+      Ay     = area(n,1);
+      for (int k=0; k<nq; k++){
+	fi[k]    =(Ax*(dx*(fx(n2,k)-fx(n1,k))+dy*(fy(n2,k)-fy(n1,k)))
+		 + Ay*(dx*(gx(n2,k)-gx(n1,k))+dy*(gy(n2,k)-gy(n1,k))))*lim(n,k);
+	d(n1,k) += fi[k];
+	d(n2,k) -= fi[k];
+	//if (n1 < nNode-nNodeBd) d(n1,k) += fi[k];
+	//if (n2 < nNode-nNodeBd) d(n2,k) -= fi[k];
+      }}
+
+    /*
+    m = 0;
+    a = 1./12.;
+    for (int n=nEdge-nEdgeBd; n<nEdge; n++){
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      dx     = a*(x(n2,0)-x(n1,0));
+      dy     = a*(x(n2,1)-x(n1,1));
+      Ax     = areaBd(m  ,0);
+      Ay     = areaBd(m++,1);
+      for (int k=0; k<nq; k++){
+	fi[k]    =(Ax*(dx*(fx(n2,k)-fx(n1,k))+dy*(fy(n2,k)-fy(n1,k)))
+		 + Ay*(dx*(gx(n2,k)-gx(n1,k))+dy*(gy(n2,k)-gy(n1,k))))*lim(n,k);
+	d(n1,k) += fi[k];
+	d(n2,k) += fi[k];
+      }}
+    */
+
+
+    f.deallocate();
+    fx.deallocate();
+    fy.deallocate();
+    g.deallocate();
+    gx.deallocate();
+    gy.deallocate();
+  }
+}

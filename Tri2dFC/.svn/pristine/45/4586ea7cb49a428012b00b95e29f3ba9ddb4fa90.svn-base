@@ -1,0 +1,7 @@
+#!/bin/sh
+# can be used to change a phrase in a bunch of files
+ls *ViscousWall* | while read f
+do
+    cat $f | sed "s/Dirichlet/ViscousWall/g" > tmp
+    mv tmp $f
+done

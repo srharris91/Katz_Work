@@ -1,0 +1,406 @@
+#include "Mms3d.h"
+
+///\cond extern
+extern "C"
+{
+  void inputsolutionreadmms3d_(const int&,
+			       const char*,
+			       const int&,
+			       double&,
+			       double&,
+			       double*);
+}
+///\endcond
+
+
+// [Mms3d]
+Mms3d::Mms3d()
+{
+}
+// [Mms3d]
+
+
+// [~Mms3d]
+Mms3d::~Mms3d()
+{
+}
+// [~Mms3d]
+
+
+// [initialize]
+void Mms3d::initialize(const int& nq0,
+		       const int& ndim0,
+		       const string& inputFile,
+		       State* state0,
+		       Transport* transport0)
+{
+  nq = nq0;
+  ndim = ndim0;
+  rValue = new double[nq];
+  inputsolutionreadmms3d_(inputFile.size(),
+			  inputFile.c_str(),
+			  nq,
+			  period,
+			  amplitude,
+			  rValue);
+  state     = state0;
+  transport = transport0;
+
+  ax  = new double[nq];
+  ay  = new double[nq];
+  az  = new double[nq];
+  axy = new double[nq];
+  axz = new double[nq];
+  ayz = new double[nq];
+  bx  = new double[nq];
+  by  = new double[nq];
+  bz  = new double[nq];
+  bxy = new double[nq];
+  bxz = new double[nq];
+  byz = new double[nq];
+  cx  = new double[nq];
+  cy  = new double[nq];
+  cz  = new double[nq];
+  cxy = new double[nq];
+  cxz = new double[nq];
+  cyz = new double[nq];
+
+  double pi = 4.*atan(1.);
+  double A = amplitude;
+  double a = amplitude/3.;
+  double B = 2.*pi/period;
+  double b,c;
+  srand(1);
+  // generate random number MMS coefficients (since the seed is the same
+  // for all instances, the same coefficients will be generated each time).
+  for (int n=0; n<nq; n++){
+
+    b      = double(rand())/double(RAND_MAX);
+    b      = 2.*a*(b-.5); // random number between -a and a
+    ax[n]  = b;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 2.*a*(b-.5); // random number between -a and a
+    ay[n]  = b;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 2.*a*(b-.5); // random number between -a and a
+    az[n]  = b;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 2.*a*(b-.5); // random number between -a and a
+    axy[n] = b;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 2.*a*(b-.5); // random number between -a and a
+    axz[n] = b;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 2.*a*(b-.5); // random number between -a and a
+    ayz[n] = b;
+
+    b      = double(rand())/double(RAND_MAX);
+    c      = 0.;
+    if (b < .5) c = 1.; // 0. or 1. randomly
+    bx[n]  = c*.5*pi;
+    b      = double(rand())/double(RAND_MAX);
+    c      = 0.;
+    if (b < .5) c = 1.; // 0. or 1. randomly
+    by[n]  = c*.5*pi;
+    b      = double(rand())/double(RAND_MAX);
+    c      = 0.;
+    if (b < .5) c = 1.; // 0. or 1. randomly
+    bz[n]  = c*.5*pi;
+    b      = double(rand())/double(RAND_MAX);
+    c      = 0.;
+    if (b < .5) c = 1.; // 0. or 1. randomly
+    bxy[n] = c*.5*pi;
+    b      = double(rand())/double(RAND_MAX);
+    c      = 0.;
+    if (b < .5) c = 1.; // 0. or 1. randomly
+    bxz[n] = c*.5*pi;
+    b      = double(rand())/double(RAND_MAX);
+    c      = 0.;
+    if (b < .5) c = 1.; // 0. or 1. randomly
+    byz[n] = c*.5*pi;
+
+    b      = double(rand())/double(RAND_MAX);
+    b      = 1.+2.*A*(b-.5); // random number between 1.-A and 1.+A
+    cx[n]  = b*B;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 1.+2.*A*(b-.5); // random number between 1.-A and 1.+A
+    cy[n]  = b*B;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 1.+2.*A*(b-.5); // random number between 1.-A and 1.+A
+    cz[n]  = b*B;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 1.+2.*A*(b-.5); // random number between 1.-A and 1.+A
+    cxy[n] = b*B/period;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 1.+2.*A*(b-.5); // random number between 1.-A and 1.+A
+    cxz[n] = b*B/period;
+    b      = double(rand())/double(RAND_MAX);
+    b      = 1.+2.*A*(b-.5); // random number between 1.-A and 1.+A
+    cyz[n] = b*B/period;
+  }
+}
+// [initialize]
+
+
+// [getQ]
+void Mms3d::getQ(const int& npts,
+		 const double* xy,
+		 double* q)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++){
+      q[iq+k] = rValue[k]*(1.+ax [k]*sin(bx [k]-cx [k]*x)
+			     +ay [k]*sin(by [k]-cy [k]*y)
+			     +az [k]*sin(bz [k]-cz [k]*z)
+			     +axy[k]*sin(bxy[k]-cxy[k]*x*y)
+			     +axz[k]*sin(bxz[k]-cxz[k]*x*z)
+			     +ayz[k]*sin(byz[k]-cyz[k]*y*z));
+    }}
+}
+// [getQ]
+
+
+// [getQx]
+void Mms3d::getQx(const int& npts,
+		  const double* xy,
+		  double* qx)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qx[iq+k] =-rValue[k]*(ax [k]*cx [k]  *cos(bx [k]-cx [k]*x)
+			   +axy[k]*cxy[k]*y*cos(bxy[k]-cxy[k]*x*y)
+			   +axz[k]*cxz[k]*z*cos(bxz[k]-cxz[k]*x*z));
+  }
+}
+// [getQx]
+
+
+// [getQy]
+void Mms3d::getQy(const int& npts,
+		  const double* xy,
+		  double* qy)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qy[iq+k] =-rValue[k]*(ay [k]*cy [k]  *cos(by [k]-cy [k]*y)
+			   +axy[k]*cxy[k]*x*cos(bxy[k]-cxy[k]*x*y)
+			   +ayz[k]*cyz[k]*z*cos(byz[k]-cyz[k]*y*z));
+  }
+}
+// [getQy]
+
+
+// [getQz]
+void Mms3d::getQz(const int& npts,
+		  const double* xy,
+		  double* qz)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qz[iq+k] =-rValue[k]*(az [k]*cz [k]  *cos(bz [k]-cz [k]*z)
+			   +axz[k]*cxz[k]*x*cos(bxz[k]-cxz[k]*x*z)
+			   +ayz[k]*cyz[k]*y*cos(byz[k]-cyz[k]*y*z));
+  }
+}
+// [getQz]
+
+
+// [getQxx]
+void Mms3d::getQxx(const int& npts,
+		   const double* xy,
+		   double* qxx)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qxx[iq+k] =-rValue[k]*(ax [k]*cx [k]*cx [k]    *sin(bx [k]-cx [k]*x)
+			    +axy[k]*cxy[k]*cxy[k]*y*y*sin(bxy[k]-cxy[k]*x*y)
+			    +axz[k]*cxz[k]*cxz[k]*z*z*sin(bxz[k]-cxz[k]*x*z));
+
+  }
+}
+// [getQxx]
+
+
+// [getQyy]
+void Mms3d::getQyy(const int& npts,
+		   const double* xy,
+		   double* qyy)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qyy[iq+k] =-rValue[k]*(ay [k]*cy [k]*cy [k]    *sin(by [k]-cy [k]*y)
+			    +axy[k]*cxy[k]*cxy[k]*x*x*sin(bxy[k]-cxy[k]*x*y)
+			    +ayz[k]*cyz[k]*cyz[k]*z*z*sin(byz[k]-cyz[k]*y*z));
+  }
+}
+// [getQyy]
+
+
+// [getQzz]
+void Mms3d::getQzz(const int& npts,
+		   const double* xy,
+		   double* qzz)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qzz[iq+k] =-rValue[k]*(az [k]*cz [k]*cz [k]    *sin(bz [k]-cz [k]*z)
+			    +axz[k]*cxz[k]*cxz[k]*x*x*sin(bxz[k]-cxz[k]*x*z)
+			    +ayz[k]*cyz[k]*cyz[k]*y*y*sin(byz[k]-cyz[k]*y*z));
+  }	 
+}
+// [getQzz]
+
+
+// [getQxy]
+void Mms3d::getQxy(const int& npts,
+		   const double* xy,
+		   double* qxy)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qxy[iq+k] =-rValue[k]*(axy[k]*cxy[k]*(cxy[k]*x*y*sin(bxy[k]-cxy[k]*x*y)+
+					    cos(bxy[k]-cxy[k]*x*y)));
+  }
+}
+// [getQxy]
+
+
+// [getQxz]
+void Mms3d::getQxz(const int& npts,
+		   const double* xy,
+		   double* qxz)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qxz[iq+k] =-rValue[k]*(axz[k]*cxz[k]*(cxz[k]*x*z*sin(bxz[k]-cxz[k]*x*z)+
+					    cos(bxz[k]-cxz[k]*x*z)));
+  }
+}
+// [getQxz]
+
+
+// [getQyz]
+void Mms3d::getQyz(const int& npts,
+		   const double* xy,
+		   double* qyz)
+{
+  int i,iq,ix;
+  double x,y,z;
+  for (int n=0; n<npts; n++){
+    iq     = n*nq;
+    ix     = n*ndim;
+    x      = xy[ix  ];
+    y      = xy[ix+1];
+    z      = xy[ix+2];
+    for (int k=0; k<nq; k++)
+      qyz[iq+k] =-rValue[k]*(ayz[k]*cyz[k]*(cyz[k]*y*z*sin(byz[k]-cyz[k]*y*z)+
+					    cos(byz[k]-cyz[k]*y*z)));
+  }
+}
+// [getQyz]
+
+
+// [finalize]
+void Mms3d::finalize()
+{
+  if (ax ) delete [] ax;
+  if (ay ) delete [] ay;
+  if (az ) delete [] az;
+  if (axy) delete [] axy;
+  if (axz) delete [] axz;
+  if (ayz) delete [] ayz;
+  if (bx ) delete [] bx;
+  if (by ) delete [] by;
+  if (bz ) delete [] bz;
+  if (bxy) delete [] bxy;
+  if (bxz) delete [] bxz;
+  if (byz) delete [] byz;
+  if (cx ) delete [] cx;
+  if (cy ) delete [] cy;
+  if (cz ) delete [] cz;
+  if (cxy) delete [] cxy;
+  if (cxz) delete [] cxz;
+  if (cyz) delete [] cyz;
+  ax  = NULL;
+  ay  = NULL;
+  az  = NULL;
+  axy = NULL;
+  axz = NULL;
+  ayz = NULL;
+  bx  = NULL;
+  by  = NULL;
+  bz  = NULL;
+  bxy = NULL;
+  bxz = NULL;
+  byz = NULL;
+  cx  = NULL;
+  cy  = NULL;
+  cz  = NULL;
+  cxy = NULL;
+  cxz = NULL;
+  cyz = NULL;
+}
+// [finalize]

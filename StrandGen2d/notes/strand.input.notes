@@ -1,0 +1,32 @@
+! input file for the strand meshing layer
+&strand2d
+	iwrite		= 2 !0 = write no Tecplot grid files
+			    !1 = write just Tecplot grid file of the surface
+			    !2 = write Tecplot grid file of volume and surface
+        strandDist      = 2 !1 = uniform
+			    !2 = geometric
+			    !3 = hyperbolic tangent
+	nPtsPerStrand	= 16 !set to 0 in order to use stretchRatio instead
+	nfringe		= 2
+        stretchRatio    = 1.1 !spacing ratio between adjacent points
+        wallspacing     = .05
+        strandLength    = 10.
+        deltaSmooth     = .0001 !smoothing threshold (negative = no smoothing)
+        trimType        = 0 !0 = no strand clipping
+/
+
+Description of inputs:
+
+iwrite - explained above
+strandDist - specifies the type of 1d distribution along strands
+nPtsPerStrand - number of points (actually cells) along each strand
+nfringe - number of fringe cells on the end of each strand
+stratchRatio - maximum allowable stretching ratio between adjacent cells
+	       along a strand (not used in strandDist = 1)
+wallspacing - spacing of first cell on the wall
+strandLength - length of each strand
+deltaSmooth - smoothing "residual" which controls the number of strand
+	      vectory smoothing operations. A negative number means no
+	      smoothing. Smaller positive numbers mean more smoothing.
+trimType - only 0 allowed at this point, but is meant to allow for
+	   different types of clipping including prism quality effects

@@ -1,0 +1,648 @@
+// File:        StrandMultiBlockMesh.C
+// Package:     STRANDGEN
+//              Parallel Infrastructure for Cartesian & Strand Solvers
+// Release:     $Name:  $
+// Revision:    $Revision:  $
+// Modified:    $Date:  $
+// Description: Manages strand mesh generation across all blocks
+
+
+#include "StrandMultiBlockMesh.h"
+
+
+extern "C" {
+  void partitionstage1_(const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			int*,
+			int*,
+			int*,
+			int*,
+			int&,
+			int&,
+			int*,
+			int*,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const double*,
+			const double*,
+			const double*,
+			const double*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*);
+  void partitionstage2_(const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			int*,
+			int*,
+			int*,
+			int*,
+			int&,
+			int*,
+			int*,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const double*,
+			const double*,
+			const double*,
+			const double*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			const int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			int*,
+			double*,
+			double*,
+			double*,
+			double*);
+  void plotheader_(const int&);
+}
+
+
+StrandMultiBlockMesh* StrandMultiBlockMesh::smbm_manager_instance = NULL;
+StrandGlobalMesh* StrandMultiBlockMesh::d_sgm = NULL;
+int  StrandMultiBlockMesh::d_nStrandBlocks = 0;
+int  StrandMultiBlockMesh::d_nSurfFaces = 0;
+int  StrandMultiBlockMesh::d_nSurfNodes = 0;
+int  StrandMultiBlockMesh::d_nBndEdges = 0;
+int  StrandMultiBlockMesh::d_nPrtEdges = 0;
+int* StrandMultiBlockMesh::d_globalFaceMap = NULL;
+int* StrandMultiBlockMesh::d_globalNodeMap = NULL;
+int* StrandMultiBlockMesh::d_globalEdgeMap = NULL;
+int* StrandMultiBlockMesh::d_prtEdges = NULL;
+bool StrandMultiBlockMesh::d_initialized = false;
+bool StrandMultiBlockMesh::d_partitioned = false;
+bool StrandMultiBlockMesh::d_sprouted = false;
+
+
+// @brief Create singleton instance.
+void StrandMultiBlockMesh::createManager()
+{
+  if (!smbm_manager_instance)
+    {
+      smbm_manager_instance = new StrandMultiBlockMesh();
+    }
+}
+
+
+// @brief Return a pointer to the singleton instance.
+StrandMultiBlockMesh* StrandMultiBlockMesh::getManager()
+{
+  if (!smbm_manager_instance)
+    {
+      createManager();
+    }
+  return(smbm_manager_instance);
+}
+
+
+// @brief Deallocate the manager instance.
+void StrandMultiBlockMesh::freeManager()
+{
+  if (smbm_manager_instance)
+    {
+      delete smbm_manager_instance;
+    }
+  smbm_manager_instance = ((StrandMultiBlockMesh*) NULL);
+}
+
+
+// initialize
+void StrandMultiBlockMesh::initialize()
+{
+  d_sgm = StrandGlobalMesh::getManager();
+  d_nStrandBlocks = d_sgm->getNPartitions();
+  d_nSurfFaces    = d_sgm->getNSurfFaces();
+  d_nSurfNodes    = d_sgm->getNSurfNodes();
+  d_nBndEdges     = d_sgm->getNBndEdges();
+  d_nPrtEdges     = (2*d_nSurfFaces+d_nBndEdges)/2; // upper bound
+
+  d_globalFaceMap = new int[  d_nSurfFaces];
+  d_globalNodeMap = new int[  d_nSurfNodes];
+  d_globalEdgeMap = new int[2*d_nPrtEdges ];
+  d_prtEdges      = new int[2*d_nPrtEdges ];
+  d_strandBlocks.resize(d_nStrandBlocks);
+
+  d_initialized = true;
+}
+
+
+// partition global mesh in to strand blocks
+void StrandMultiBlockMesh::partition()
+{
+  if (d_nStrandBlocks != 1)
+    {
+      cout << "\nSetting nStrandBlocks to 1 for now"
+	   << endl;
+      d_nStrandBlocks = 1;
+    }
+
+
+  // Create partitions in 2 stages
+  // stage 1: fill in dimensions of all partitions
+  int* id      = new int[d_nStrandBlocks];
+  int* pid     = new int[d_nStrandBlocks];
+  int* nFaces  = new int[d_nStrandBlocks];
+  int* nNodes  = new int[d_nStrandBlocks];
+  int* nGfaces = new int[d_nStrandBlocks];
+  int* nGnodes = new int[d_nStrandBlocks];
+  int* nBedges = new int[d_nStrandBlocks];
+  int* nPedges = new int[d_nStrandBlocks];
+  int* nPstr   = new int[d_nStrandBlocks];
+  int* nFringe = new int[d_nStrandBlocks];
+  int* nScomp  = new int[d_nStrandBlocks];
+  int* nBcomp  = new int[d_nStrandBlocks];
+
+  const int     nPtsPerStrandG = d_sgm->getNPtsPerStrand();
+  const int     nFringeG       = d_sgm->getNFringe();
+  const int     surfaceOnlyG   = d_sgm->getSurfaceOnly();
+  const int     nSurfNodesG    = d_sgm->getNSurfNodes();
+  const int     nSurfFacesG    = d_sgm->getNSurfFaces();
+  const int     nBndEdgesG     = d_sgm->getNBndEdges();
+  const int     nSurfPatchesG  = d_sgm->getNSurfPatches();
+  const int     nEdgePatchesG  = d_sgm->getNEdgePatches();
+  const int*    surfFacesG     = d_sgm->getSurfFaces();
+  const int*    bndEdgesG      = d_sgm->getBndEdges();
+  const int*    nodeClipG      = d_sgm->getNodeClip();
+  const int*    faceClipG      = d_sgm->getFaceClip();
+  const int*    faceTagG       = d_sgm->getFaceTag();
+  const int*    bndTagG        = d_sgm->getBndTag();
+  const double* xSurfG         = d_sgm->getXSurf();
+  const double* pointingVecG   = d_sgm->getPointingVec();
+  const double* xStrandG       = d_sgm->getXStrand();
+  const double* bndNormalG     = d_sgm->getBndNormal();
+
+  int  nPrtEdges;
+  int  ncsp1   = 2*d_nSurfNodes;
+  int* csp1    = new int[ncsp1];
+  int* csp2    = new int[d_nSurfNodes+1];
+
+  partitionstage1_(d_nStrandBlocks,
+		   d_nSurfFaces,
+		   d_nSurfNodes,
+		   d_nBndEdges,
+		   d_nPrtEdges,
+		   d_globalFaceMap,
+		   d_globalNodeMap,
+		   d_globalEdgeMap,
+		   d_prtEdges,
+		   nPrtEdges,
+		   ncsp1,
+		   csp1,
+		   csp2,
+		   nPtsPerStrandG,
+		   nFringeG,
+		   surfaceOnlyG,
+		   nSurfNodesG,
+		   nSurfFacesG,
+		   nBndEdgesG,
+		   nSurfPatchesG,
+		   nEdgePatchesG,
+		   surfFacesG,
+		   bndEdgesG,
+		   nodeClipG,
+		   faceClipG,
+		   faceTagG,
+		   bndTagG,
+		   xSurfG,
+		   pointingVecG,
+		   xStrandG,
+		   bndNormalG,
+		   id,
+		   pid,
+		   nFaces,
+		   nNodes,
+		   nGfaces,
+		   nGnodes,
+		   nBedges,
+		   nPedges,
+		   nPstr,
+		   nFringe,
+		   nScomp,
+		   nBcomp);
+
+
+  // set the dimensions in the strand blocks
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      d_strandBlocks[n].setId(*(id+n));
+      d_strandBlocks[n].setPid(*(pid+n));
+      d_strandBlocks[n].setNFaces(*(nFaces+n));
+      d_strandBlocks[n].setNNodes(*(nNodes+n));
+      d_strandBlocks[n].setNGfaces(*(nGfaces+n));
+      d_strandBlocks[n].setNGnodes(*(nGnodes+n));
+      d_strandBlocks[n].setNBedges(*(nBedges+n));
+      d_strandBlocks[n].setNPedges(*(nPedges+n));
+      d_strandBlocks[n].setNPstr(*(nPstr+n));
+      d_strandBlocks[n].setNFringe(*(nFringe+n));
+      d_strandBlocks[n].setNScomp(*(nScomp+n));
+      d_strandBlocks[n].setNBcomp(*(nBcomp+n));
+    }
+
+  // Reallocate d_globalEdgeMap to save space
+  if (nPrtEdges > 0){
+    int* globalEdgeMap = new int[2*nPrtEdges];
+    int* prtEdges      = new int[2*nPrtEdges];
+    for (int n=0; n<2*nPrtEdges; n++)
+      {
+	*(globalEdgeMap+n) = *(d_globalEdgeMap+n);
+	*(prtEdges+n)      = *(d_prtEdges+n);
+      }
+    d_nPrtEdges = nPrtEdges;
+    delete [] d_globalEdgeMap;
+    delete [] d_prtEdges;
+    d_globalEdgeMap = NULL;
+    d_prtEdges = NULL;
+    d_globalEdgeMap = new int[2*d_nPrtEdges];
+    d_prtEdges      = new int[2*d_nPrtEdges];
+    for (int n=0; n<2*d_nPrtEdges; n++)
+      {
+	*(d_globalEdgeMap+n) = *(globalEdgeMap+n);
+	*(d_prtEdges+n)      = *(prtEdges+n);
+      }
+    delete [] globalEdgeMap;
+    delete [] prtEdges;
+  }
+  else{
+    d_nPrtEdges = nPrtEdges;
+    delete [] d_globalEdgeMap;
+    delete [] d_prtEdges;
+    d_globalEdgeMap = NULL;
+    d_prtEdges = NULL;
+  };
+
+
+  // stage 2: fill in all other data arrays for each partition
+  int*    face;
+  int*    bEdge;
+  int*    pEdge;
+  int*    fTag;
+  int*    bTag;
+  int*    fClip;
+  int*    nClip;
+  int*    fMap;
+  int*    nMap;
+  int*    eMap;
+  double* xSrf;
+  double* xStr;
+  double* pV;
+  double* bNorm;
+
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      face  = NULL;
+      bEdge = NULL;
+      pEdge = NULL;
+      fTag  = NULL;
+      bTag  = NULL;
+      fClip = NULL;
+      nClip = NULL;
+      fMap  = NULL;
+      nMap  = NULL;
+      eMap  = NULL;
+      xSrf  = NULL;
+      xStr  = NULL;
+      pV    = NULL;
+      bNorm = NULL;
+                            face  = new int   [2*(*(nFaces +n)) ];
+      if (*(nBedges+n) > 0) bEdge = new int   [   *(nBedges+n)  ];
+      if (*(nPedges+n) > 0) pEdge = new int   [   *(nPedges+n)  ];
+                            fTag  = new int   [   *(nFaces +n)  ];
+      if (*(nBedges+n) > 0) bTag  = new int   [   *(nBedges+n)  ];
+                            fClip = new int   [   *(nFaces +n)  ];
+                            nClip = new int   [   *(nNodes +n)  ];
+			    fMap  = new int   [   *(nFaces +n)  ];
+			    nMap  = new int   [   *(nNodes +n)  ];
+      if (*(nPedges+n) > 0) eMap  = new int   [   *(nPedges+n)  ];
+			    xSrf  = new double[2*(*(nNodes +n)) ];
+                            xStr  = new double[   *(nPstr  +n)+1];
+                            pV    = new double[2*(*(nNodes +n)) ];
+      if (*(nBcomp+n)  > 0) bNorm = new double[2*(*(nBcomp +n)) ];
+
+
+      partitionstage2_(n+1,
+		       d_nStrandBlocks,
+		       d_nSurfFaces,
+		       d_nSurfNodes,
+		       d_nBndEdges,
+		       d_nPrtEdges,
+		       d_globalFaceMap,
+		       d_globalNodeMap,
+		       d_globalEdgeMap,
+		       d_prtEdges,
+		       ncsp1,
+		       csp1,
+		       csp2,
+		       nPtsPerStrandG,
+		       nFringeG,
+		       surfaceOnlyG,
+		       nSurfNodesG,
+		       nSurfFacesG,
+		       nBndEdgesG,
+		       nSurfPatchesG,
+		       nEdgePatchesG,
+		       surfFacesG,
+		       bndEdgesG,
+		       nodeClipG,
+		       faceClipG,
+		       faceTagG,
+		       bndTagG,
+		       xSurfG,
+		       pointingVecG,
+		       xStrandG,
+		       bndNormalG,
+		       id,
+		       pid,
+		       nFaces,
+		       nNodes,
+		       nGfaces,
+		       nGnodes,
+		       nBedges,
+		       nPedges,
+		       nPstr,
+		       nFringe,
+		       nScomp,
+		       nBcomp,
+		       face,
+		       bEdge,
+		       pEdge,
+		       fTag,
+		       bTag,
+		       fClip,
+		       nClip,
+		       fMap,
+		       nMap,
+		       eMap,
+		       xSrf,
+		       xStr,
+		       pV,
+		       bNorm);
+
+
+      // set the data in the strand blocks
+      d_strandBlocks[n].setFace (face );
+      d_strandBlocks[n].setBEdge(bEdge);
+      d_strandBlocks[n].setPEdge(pEdge);
+      d_strandBlocks[n].setFTag (fTag );
+      d_strandBlocks[n].setBTag (bTag );
+      d_strandBlocks[n].setFClip(fClip);
+      d_strandBlocks[n].setNClip(nClip);
+      d_strandBlocks[n].setFMap (fMap );
+      d_strandBlocks[n].setNMap (nMap );
+      d_strandBlocks[n].setEMap (eMap );
+      d_strandBlocks[n].setXSrf (xSrf );
+      d_strandBlocks[n].setXStr (xStr );
+      d_strandBlocks[n].setPV   (pV   );
+      d_strandBlocks[n].setBNorm(bNorm);
+
+      if (face ) delete [] face;
+      if (bEdge) delete [] bEdge;
+      if (pEdge) delete [] pEdge;
+      if (fTag ) delete [] fTag;
+      if (bTag ) delete [] bTag;
+      if (fClip) delete [] fClip;
+      if (nClip) delete [] nClip;
+      if (fMap ) delete [] fMap;
+      if (nMap ) delete [] nMap;
+      if (eMap ) delete [] eMap;
+      if (xSrf ) delete [] xSrf;
+      if (xStr ) delete [] xStr;
+      if (pV   ) delete [] pV;
+      if (bNorm) delete [] bNorm;
+    }
+
+  if (id     ) delete [] id;
+  if (pid    ) delete [] pid;
+  if (nFaces ) delete [] nFaces;
+  if (nNodes ) delete [] nNodes;
+  if (nGfaces) delete [] nGfaces;
+  if (nGnodes) delete [] nGnodes;
+  if (nBedges) delete [] nBedges;
+  if (nPedges) delete [] nPedges;
+  if (nPstr  ) delete [] nPstr;
+  if (nFringe) delete [] nFringe;
+  if (nScomp ) delete [] nScomp;
+  if (nBcomp ) delete [] nBcomp;
+  if (csp1   ) delete [] csp1;
+  if (csp2   ) delete [] csp2;
+
+  // set partitioned flag to indicate the mesh has been partitioned
+  d_partitioned = true;
+}
+
+
+// sprout the volume mesh
+void StrandMultiBlockMesh::sprout()
+{
+  bool surfaceOnly = d_sgm->getSurfaceOnly();
+  if (surfaceOnly)
+    {
+      for (int n=0; n<d_nStrandBlocks; n++)
+	{
+	  d_strandBlocks[n].sproutInitialize();
+	}
+      
+      double deltaSmooth = d_sgm->getDeltaSmooth();
+      if (deltaSmooth > 0.)
+	{
+	  double rSmoothL2;
+	  double l2;
+	  int iter = 0;
+	  do
+	    {
+	      rSmoothL2 = 0.;
+	      for (int n=0; n<d_nStrandBlocks; n++)
+		{
+		  l2 = d_strandBlocks[n].sproutSmooth();
+		  rSmoothL2 += l2;
+		}
+	      cout.setf(ios::scientific);
+	      cout << "\nsmoothing iter:\t"
+		   << ++iter << "\tL2 resid:\t" << rSmoothL2;
+	    } while (rSmoothL2 > deltaSmooth);
+	  cout << endl;
+	}
+      
+      for (int n=0; n<d_nStrandBlocks; n++)
+	{
+	  d_strandBlocks[n].sproutClip();
+	}
+    }
+    for (int n=0; n<d_nStrandBlocks; n++)
+	{
+	  d_strandBlocks[n].sproutFinalize();
+	}
+  d_sprouted  = true;
+}
+
+
+// print block information
+void StrandMultiBlockMesh::print()
+{
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      d_strandBlocks[n].print();
+    }
+}
+
+
+// plot the multiblock mesh
+void StrandMultiBlockMesh::plot()
+{
+  plotheader_(d_nStrandBlocks);
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      d_strandBlocks[n].plot();
+    }
+}
+
+
+// protected constructor
+StrandMultiBlockMesh::StrandMultiBlockMesh()
+{
+}
+
+// protected destructor
+StrandMultiBlockMesh::~StrandMultiBlockMesh()
+{
+  if (d_globalFaceMap) delete[] d_globalFaceMap;
+  if (d_globalNodeMap) delete[] d_globalNodeMap;
+  if (d_globalEdgeMap) delete[] d_globalEdgeMap;
+  if (d_prtEdges) delete[] d_prtEdges;
+  d_globalFaceMap = NULL;
+  d_globalNodeMap = NULL;
+  d_globalEdgeMap = NULL;
+  d_prtEdges = NULL;
+  d_strandBlocks.resize(0);
+}
+
+
+// get methods
+const int& StrandMultiBlockMesh::getNStrandBlocks()
+{
+  return(d_nStrandBlocks);
+}
+
+const int& StrandMultiBlockMesh::getNSurfFaces()
+{
+  return(d_nSurfFaces);
+}
+
+const int& StrandMultiBlockMesh::getNSurfNodes()
+{
+  return(d_nSurfNodes);
+}
+
+const int& StrandMultiBlockMesh::getNBndEdges()
+{
+  return(d_nBndEdges);
+}
+
+const int& StrandMultiBlockMesh::getNPrtEdges()
+{
+  return(d_nPrtEdges);
+}
+
+const int* StrandMultiBlockMesh::getGlobalFaceMap()
+{
+  return(d_globalFaceMap);
+}
+
+const int* StrandMultiBlockMesh::getGlobalNodeMap()
+{
+  return(d_globalNodeMap);
+}
+
+const int* StrandMultiBlockMesh::getGlobalEdgeMap()
+{
+  return(d_globalEdgeMap);
+}
+
+const int* StrandMultiBlockMesh::getPrtEdges()
+{
+  return(d_prtEdges);
+}
+
+StrandBlock* StrandMultiBlockMesh::getStrandBlock(int& m)
+{
+   if (d_initialized)
+     {
+       return(&(d_strandBlocks[m]));
+     }
+   else
+     {
+       cout << "StrandMultiBlockMesh: ERROR!! multiblock mesh not initialized."
+	    << endl;
+       exit(-1);
+     }
+}
+
+const vector<StrandBlock>& StrandMultiBlockMesh::getStrandBlocks()
+{
+   if (d_initialized)
+     {
+       return(d_strandBlocks);
+     }
+   else
+     {
+       cout << "StrandMultiBlockMesh: ERROR!! strandBlocks not initialized." 
+            << endl;
+       exit(-1);
+     }
+}

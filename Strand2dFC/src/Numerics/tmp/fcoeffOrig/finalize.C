@@ -1,0 +1,96 @@
+#include "Strand2dFCBlockSolver.h"
+
+
+void Strand2dFCBlockSolver::finalize()
+{
+  if (sys){
+    sys->finalize();
+    delete sys;
+    sys = NULL;
+  }
+  surfElem.deallocate();
+  surfElem0.deallocate();
+  surfElemTag.deallocate();
+  surfNodeTag.deallocate();
+  bndNode.deallocate();
+  bndElem.deallocate();
+  bndNodeTag.deallocate();
+  bndNodeNormal.deallocate();
+  surfX.deallocate();
+  strandX.deallocate();
+  pointingVec.deallocate();
+  clip.deallocate();
+  iqgrad.deallocate();
+  iqagrad.deallocate();
+  rka.deallocate();
+  rkb.deallocate();
+  bdf.deallocate();
+  dlim.deallocate();
+  rmsNorm.deallocate();
+  rms.deallocate();
+  outputVarLength.deallocate();
+  outputVars.deallocate();
+  elemEdge.deallocate();
+  surfEdge.deallocate();
+  bndSign.deallocate();
+  psp1.deallocate();
+  psp2.deallocate();
+  psp1MGS.deallocate();
+  psp2MGS.deallocate();
+  wsp1MGS.deallocate();
+  psp1MGR.deallocate();
+  psp2MGR.deallocate();
+  wsp1MGR.deallocate();
+  psp1MGC.deallocate();
+  psp2MGC.deallocate();
+  wsp1MGC.deallocate();
+  ls.deallocate();
+  xn.deallocate();
+  yn.deallocate();
+  xs.deallocate();
+  ys.deallocate();
+  xsA.deallocate();
+  ysA.deallocate();
+  xns.deallocate();
+  yns.deallocate();
+  jac.deallocate();
+  v.deallocate();
+  sn.deallocate();
+  wQ.deallocate();
+  lQ.deallocate();
+  lsQ.deallocate();
+  xsQ.deallocate();
+  ysQ.deallocate();
+  xnQ.deallocate();
+  ynQ.deallocate();
+  jacQ.deallocate();
+  gxc.deallocate();
+  dci1.deallocate();
+  dcb1.deallocate();
+  dci.deallocate();
+  dcb.deallocate();
+  ici.deallocate();
+  icb.deallocate();
+  vci.deallocate();
+  vcb.deallocate();
+  vciIndex.deallocate();
+  vcbIndex.deallocate();
+  q.deallocate();
+  qa.deallocate();
+  q0.deallocate();
+  fwc.deallocate();
+  qn.deallocate();
+  qt.deallocate();
+  radi.deallocate();
+  radv.deallocate();
+  dt.deallocate();
+  r.deallocate();
+  d.deallocate();
+  dn.deallocate();
+  s.deallocate();
+  qx.deallocate();
+  lim.deallocate();
+  strandLim.deallocate();
+
+  dataInit();
+}

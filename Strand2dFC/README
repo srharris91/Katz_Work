@@ -1,0 +1,22 @@
+Strand2dFC solves the compressible Navier-Stokes equations on a single block
+of 2d strand grid.  The solver features high-order spatial discretizations
+(FC stands for the "flux correction" high order method),
+BDF time discretizations, and Paraview output.
+
+To compile the block solver library:
+	1. Set the proper paths and compiler options in Make.rules
+		SOLVER = current path to Strand2dFC
+		SOLVERLIB = desired name of solver library
+		PHYSICS = path to the "Physics" library needed by
+			  Strand2dFC. Note: the Physics library
+			  needs to be compiled beforehand.
+	2. Type "make library".
+
+To generate Doxygen documentation of the Strand2dFC library:
+	1. Install Doxygen on your system if you don't already have it.
+	2. Type "make documentation".
+	3. Open the file Strand2dFC/doc/html/index.html which contains the
+	   main page of the documentation.
+
+To remove the library, documentation, and any object files:
+	1. Type "make clean".

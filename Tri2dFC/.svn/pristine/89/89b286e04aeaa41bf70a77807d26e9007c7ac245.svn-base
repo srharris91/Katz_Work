@@ -1,0 +1,47 @@
+###############################################################################
+#                                                                             #
+#                    Top level Make.rules for arccfd codes                    #
+#                                                                             #
+###############################################################################
+
+
+#-----------BEGIN CONFIGURE SECTION--------------------------------------------
+
+# locations and includes
+SOLVER		= /Users/akatz/Work/codes/Tri2dFC
+SOLVERLIB	= Tri2dFC
+PHYSICS		= /Users/akatz/Work/codes/Physics
+INCLUDE         = -I$(SOLVER)/include -I$(PHYSICS)/src/Include
+
+# compilers and flags
+LINKER          = g++
+CXX             = g++
+CXXFLAGS        = -g -O3
+CXXFLAGS_EXTRA  = -lstdc++
+CPP             = cpp
+F90             = gfortran
+F90FLAGS        = -cpp -O3 -fdefault-real-8 -fconvert=big-endian -fPIC
+F90FLAGS_EXTRA  = -ffree-form
+LDFLAGS         = -L/usr/local/gfortran/lib -lgfortran
+
+#-----------END CONFIGURE SECTION----------------------------------------------
+
+
+# suffix rules
+
+.SUFFIXES:	$(SUFFIXES) .F90 .o .f .F .f90 .C .h
+
+.F90.o:
+	$(F90) $(F90FLAGS) $(F90FLAGS_EXTRA) $(INCLUDE) -c -o $*.o $*.F90
+
+.f90.o:
+	$(F90) $(F90FLAGS) $(F90FLAGS_EXTRA) $(INCLUDE) -c -o $*.o $*.f90
+
+.F.o:
+	$(F90) $(F90FLAGS) $(INCLUDE) -c -o $*.o $*.F
+
+.f.o:
+	$(F90) $(F90FLAGS) $(INCLUDE) -c -o $*.o $*.f
+
+.C.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -c -o $*.o $*.C

@@ -1,0 +1,112 @@
+!> \brief
+!! This subroutine generates the strand pointing vectors.
+!!
+!! Comments:
+!!
+!! Versions:
+!!   - 1.0 Katz 07/23/2010
+!!
+!! Additional notes:\par
+!!   none
+!!
+!! Source code:
+!!   \include smoothingIter.F90
+
+
+SUBROUTINE smoothingiter(nFaces, &
+		         nNodes, &
+                         nGfaces, &
+                         nGnodes, &
+                         nBedges, &
+                         nBcomp, &
+                         nCsp1, &
+                         nPsp1, &
+                         face, &
+                         bEdge, &
+                         bTag, &
+                         xSrf, &
+                         pV, &
+                         bNorm, &
+                         sFlag, &
+                         psp1, &
+                         psp2, &
+                         pv0, &
+                         rL2)
+
+IMPLICIT NONE
+
+INTEGER,INTENT(IN   ) :: nFaces, &
+		         nNodes, &
+                         nGfaces, &
+                         nGnodes, &
+                         nBedges, &
+                         nBcomp, &
+                         nCsp1, &
+                         nPsp1
+INTEGER,INTENT(IN   ),DIMENSION(2,nFaces) :: face
+INTEGER,INTENT(IN   ),DIMENSION( nBedges) :: bEdge
+INTEGER,INTENT(IN   ),DIMENSION( nBedges) :: bTag
+REAL,   INTENT(IN   ),DIMENSION(2,nNodes) :: xSrf
+REAL,   INTENT(  OUT),DIMENSION(2,nNodes) :: pv
+REAL,   INTENT(IN   ),DIMENSION(2,nBcomp) :: bNorm
+INTEGER,INTENT(IN   ),DIMENSION(  nNodes) :: sFlag
+INTEGER,INTENT(IN   ),DIMENSION(  npsp1 ) :: psp1
+INTEGER,INTENT(IN   ),DIMENSION(nNodes+1) :: psp2
+REAL,   INTENT(IN   ),DIMENSION(2,nNodes) :: pv0
+REAL,   INTENT(  OUT) :: rL2
+INTEGER :: n1,n2,n,i,m,j
+INTEGER,DIMENSION(nNodes) :: flag
+REAL,   DIMENSION(2,nNodes) :: pv2
+REAL :: ax,ay,a1,a2,a,b,l1,l2,ds,nx1,ny1,nx2,ny2
+
+
+! flag boundary nodes with its boundary tag
+flag = 0
+DO n=1,nBedges
+   n1       = bEdge(n)
+   n2       = bTag (n)
+   flag(n1) = n2
+END DO
+
+
+! iteratively smooth pointing vectors
+pv2 = pv
+DO n=1,nNodes-nGnodes
+IF (sFlag(n) == 0 .AND. flag(n) == 0) THEN
+!IF (flag(n) == 0) THEN ! smooths at sharp corners
+   ax = 0.
+   ay = 0.
+   n1 = flag(n)
+   DO m=psp2(n)+1,psp2(n+1)
+      i  = psp1(m)
+      ax = ax+pV(1,i)
+      ay = ay+pV(2,i)
+   END DO
+   IF (n1 /= 0) THEN
+      nx1 = bnorm(1,n1)
+      ny1 = bnorm(2,n1)
+      a1  = ax*nx1+ay*ny1
+      ax  = ax-a1*nx1
+      ay  = ay-a1*ny1
+   END IF
+   ds       = 1./SQRT(ax*ax+ay*ay)
+   pv2(1,n) = ax*ds
+   pv2(2,n) = ay*ds
+END IF
+END DO
+
+
+! check for convergence
+rL2 = 0.
+DO n=1,nNodes-nGnodes
+   a   = 1.-pv(1,n)*pv2(1,n)-pv(2,n)*pv2(2,n)
+   rL2 = rL2+a*a
+END DO
+rL2 = SQRT(rL2/REAL(nNodes-nGnodes))
+
+
+! set vectors to new smoothed values
+pv = pv2
+
+
+END SUBROUTINE smoothingiter

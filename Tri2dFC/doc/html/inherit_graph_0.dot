@@ -1,0 +1,7 @@
+digraph "Graphical Class Hierarchy"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCBlockSolver",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html",tooltip="Class Tri2dFCBlockSolver holds the data and specifies the operations that will be carried out on a pa..."];
+}

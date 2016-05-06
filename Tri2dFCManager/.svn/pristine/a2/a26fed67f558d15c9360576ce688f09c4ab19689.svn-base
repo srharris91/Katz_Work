@@ -1,0 +1,5 @@
+&Tri2dFCManager
+	meshFile	='test.mesh'
+	iplotmesh	= 1 !0 = no output grid file
+			    !1 = write Paraview grid file
+/

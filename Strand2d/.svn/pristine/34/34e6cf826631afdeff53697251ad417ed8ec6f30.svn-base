@@ -1,0 +1,68 @@
+#include "StrandBlockSolver.h"
+
+
+void StrandBlockSolver::computeRHS(const int& step,
+				   const int& pseudoStep,
+				   const int& linearStep,
+				   const int& sweep,
+				   const int& mglevel,
+				   const int& mode)
+{
+  // initialize residual to zero
+  for (int n=0; n<nFaces+nBedges; n++)
+    for (int j=0; j<nPstr+2; j++)
+      for (int k=0; k<nq; k++) r(k,j,n) = 0.;
+
+  // compute limiter, nodal values, and gradients
+  nodalQ(mglevel);
+  nodalQa(mglevel);
+  gradQ(mglevel);
+  gradQa(mglevel);
+  limit(mglevel);
+
+
+  // add in physical-time derivative term to the right hand side if unsteady
+  if (step > 0){
+    if (mglevel == 0) rhsTimeFine();
+    else rhsTimeCoarse();
+  }
+
+
+  // dissipation/inviscid terms
+  if (dissipation != 0 && inviscid != 0){
+    if (mglevel == 0) rhsDissipationInviscidFine();
+    else rhsDissipationInviscidCoarse();
+  }
+  else{
+    cout << "\nSeparate dissipation and inviscid routines not implemented."
+	 << endl;
+    exit(0);
+  }
+
+
+  // viscous terms
+  if (viscous != 0){
+    if (mglevel == 0) rhsViscousFine();
+    else rhsViscousCoarse();
+  }
+
+
+  // boundary terms
+  if (mglevel == 0) rhsBoundaryFine();
+  else rhsBoundaryCoarse();
+
+
+  // physical source terms
+  if (source == 1){
+    if (mglevel == 0) rhsSourceFine();
+    //else rhsSourceCoarse();
+  }
+
+
+  // MMS source terms
+  if (sourceMMS == 1 && mglevel == 0) rhsSourceMMS();
+
+
+  // multigrid forcing terms
+  if (mglevel > 0) rhsSourceMG(mode,sweep,linearStep);
+}

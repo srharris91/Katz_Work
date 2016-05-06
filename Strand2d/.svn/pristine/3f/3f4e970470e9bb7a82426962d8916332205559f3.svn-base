@@ -1,0 +1,107 @@
+#include "StrandBlockSolver.h"
+
+
+// [rhsDissipationInviscidCoarse]
+void StrandBlockSolver::rhsDissipationInviscidCoarse()
+{
+  // compute inviscid spectral radius
+  specRadi();
+
+  // unstructured and structured faces
+  for (int n=0; n<nEdges        ; n++) rhsDissipationInviscidCoarseU(n);
+  for (int n=0; n<nFaces-nGfaces; n++) rhsDissipationInviscidCoarseS(n);
+}
+// [rhsDissipationInviscidCoarse]
+
+
+// [rhsDissipationInviscidCoarseU]
+void StrandBlockSolver::rhsDissipationInviscidCoarseU(const int& n)
+{
+  /*
+  // unstructured faces
+  int c1,c2,fc,npts=1;
+  double b,ql[nq],qr[nq],fi[nq],fd[nq],a=coarseDis/16.;
+  c1           = edge(0,n);
+  c2           = edge(1,n);
+  fc           = fClip(c1);
+  if (fClip(c2) > fc) fc = fClip(c2);
+  for (int j=1; j<fc+1; j++){
+  for (int k=0; k<nq; k++){
+    ql[k]      = q(k,j,c1);
+    qr[k]      = q(k,j,c2);
+  }
+  sys->rhsInvFlux(npts,&facs(0,j,n),&xvs(j,n),&ql[0],&qr[0],&fi[0]);
+  b          = radi(j,c1);
+  if (radi(j,c2) > b) b = radi(j,c2);
+  b         *= a;
+  for (int k=0; k<nq; k++) fd[k] = b*(qr[k]-ql[k]);
+  for (int k=0; k<nq; k++){
+    r(k,j,c1) += (fi[k]-fd[k]);
+    r(k,j,c2) -= (fi[k]-fd[k]);
+  }}
+  */
+
+  // unstructured faces
+  int c1,c2,n1,jm,fc,npts=1;
+  double xq,yq,dxl,dyl,dxr,dyr,ql[nq],qr[nq],fi[nq],fd[nq];
+  c1        = edge(0,n);
+  c2        = edge(1,n);
+  fc        = fClip(c1);
+  if (fClip(c2) > fc) fc = fClip(c2);
+  for (int j=1; j<fc+1; j++){
+  for (int k=0; k<nq; k++){
+    ql[k]     = q(k,j,c1);
+    qr[k]     = q(k,j,c2);
+  }
+  sys->rhsInvFlux(npts,&facs(0,j,n),&xvs(j,n),&ql[0],&qr[0],&fi[0]);
+  sys->rhsDisFlux(npts,&facs(0,j,n),&xvs(j,n),&ql[0],&qr[0],&fd[0]);
+  for (int k=0; k<nq; k++){
+    r(k,j,c1) += (fi[k]-fd[k]);
+    r(k,j,c2) -= (fi[k]-fd[k]);
+  }}
+}
+// [rhsDissipationInviscidCoarseU]
+
+
+// [rhsDissipationInviscidCoarseS]
+void StrandBlockSolver::rhsDissipationInviscidCoarseS(const int& n)
+{
+  /*
+  // structured faces
+  int jp,npts=1;
+  double b,ql[nq],qr[nq],fi[nq],fd[nq],a=coarseDis/16.;
+  for (int j=0; j<fClip(n)+1; j++){
+    jp         = j+1;
+  for (int k=0; k<nq; k++){
+    ql[k]      = q(k,j ,n);
+    qr[k]      = q(k,jp,n);
+  }
+  sys->rhsInvFlux(npts,&facu(0,j,n),&xvu(j,n),&ql[0],&qr[0],&fi[0]);
+  b            = radi(j,n);
+  if (radi(jp,n) > b) b = radi(jp,n);
+  b           *= a;
+  for (int k=0; k<nq; k++) fd[k] = b*(qr[k]-ql[k]);
+  for (int k=0; k<nq; k++){
+    r(k,j ,n) += (fi[k]-fd[k]);
+    r(k,jp,n) -= (fi[k]-fd[k]);
+  }}
+  */
+
+
+  // structured faces
+  int n1,n2,jp,npts=1;
+  double xq,yq,dxl,dyl,dxr,dyr,ql[nq],qr[nq],fi[nq],fd[nq];
+  for (int j=0; j<fClip(n)+1; j++){
+    jp         = j+1;
+  for (int k=0; k<nq; k++){
+    ql[k]     = q(k,j ,n);
+    qr[k]     = q(k,jp,n);
+  }
+  sys->rhsInvFlux(npts,&facu(0,j,n),&xvu(j,n),&ql[0],&qr[0],&fi[0]);
+  sys->rhsDisFlux(npts,&facu(0,j,n),&xvu(j,n),&ql[0],&qr[0],&fd[0]);
+  for (int k=0; k<nq; k++){
+    r(k,j ,n) += (fi[k]-fd[k]);
+    r(k,jp,n) -= (fi[k]-fd[k]);
+  }}
+}
+// [rhsDissipationInviscidCoarseS]

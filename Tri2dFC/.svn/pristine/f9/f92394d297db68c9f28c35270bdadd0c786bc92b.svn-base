@@ -1,0 +1,57 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::hessian(const int& npts,
+				 const int& nqp,
+				 const double* p,
+				 double* pxx,
+				 double* pxy,
+				 double* pyy)
+{
+  // FEM Hessian
+  int k1,m;
+  double xri,yri,xsi,ysi,dxx,dxy,dyy,axx[nqp],axy[nqp],ayy[nqp],a;
+  Array1D<double> sumj(nNode);
+  sumj.set(0.);
+  for (int n=0; n<npts*nqp; n++) pxx[n] = 0.;
+  for (int n=0; n<npts*nqp; n++) pxy[n] = 0.;
+  for (int n=0; n<npts*nqp; n++) pyy[n] = 0.;
+  for (int n=0; n<nElemS; n++)
+    for (int i=0; i<nngS; i++){
+      m   = gNode(n,i);
+      xri = xrS(n,i);
+      yri = yrS(n,i);
+      xsi = xsS(n,i);
+      ysi = ysS(n,i);
+      for (int k=0; k<nqp; k++) axx[k] = 0.;
+      for (int k=0; k<nqp; k++) axy[k] = 0.;
+      for (int k=0; k<nqp; k++) ayy[k] = 0.;
+      for (int j=0; j<nneS; j++){
+	dxx = ysi*(lrr(m,j)*ysi-lrs(m,j)*yri)
+	    - yri*(lrs(m,j)*ysi-lss(m,j)*yri);
+	dxy =-ysi*(lrr(m,j)*xsi-lrs(m,j)*xri)
+	    + yri*(lrs(m,j)*xsi-lss(m,j)*xri);
+	dyy = xsi*(lrr(m,j)*xsi-lrs(m,j)*xri)
+	    - xri*(lrs(m,j)*xsi-lss(m,j)*xri);
+	k1  = elemS(n,j)*nqp;
+	for (int k=0; k<nqp; k++){
+	  axx[k] += p[k1+k]*dxx;
+	  axy[k] += p[k1+k]*dxy;
+	  ayy[k] += p[k1+k]*dyy;
+	}}
+      k1 = elemS(n,m)*nqp;
+      for (int k=0; k<nqp; k++) pxx[k1+k] += axx[k];
+      for (int k=0; k<nqp; k++) pxy[k1+k] += axy[k];
+      for (int k=0; k<nqp; k++) pyy[k1+k] += ayy[k];
+      sumj(elemS(n,m)) += jacS(n,i)*jacS(n,i);
+    }
+  for (int n=0; n<nNode; n++){ //normalize Hessian
+    a  = 1./sumj(n);
+    k1 = n*nqp;
+    for (int k=0; k<nqp; k++){
+      pxx[k1+k] *= a;
+      pxy[k1+k] *= a;
+      pyy[k1+k] *= a;
+    }}
+  sumj.deallocate();
+}

@@ -1,0 +1,36 @@
+SPLAMOBJS	= System/SPLam/StrandSPLam.o			\
+		  System/SPLam/inputRead.o			\
+		  System/SPLam/prepSetup.o			\
+		  System/SPLam/initFlow.o			\
+		  System/SPLam/initSource.o			\
+		  System/SPLam/stepQAdd.o			\
+		  System/SPLam/stepInvEigenvalue.o		\
+		  System/SPLam/stepVisEigenvalue.o		\
+		  System/SPLam/stepSourceEigenvalue.o		\
+		  System/SPLam/rhsInvFlux.o			\
+		  System/SPLam/rhsDisFlux.o			\
+		  System/SPLam/rhsDisFluxCoarse.o		\
+		  System/SPLam/rhsVisFlux.o			\
+		  System/SPLam/rhsVisFluxCoarse.o		\
+		  System/SPLam/rhsBCVector.o			\
+		  System/SPLam/lhsInvFluxJacobian.o		\
+		  System/SPLam/lhsDisFluxJacobian.o		\
+		  System/SPLam/lhsVisFluxJacobian.o		\
+		  System/SPLam/lhsBCVectorSelfJacobian.o	\
+		  System/SPLam/lhsBCVectorInteriorJacobian.o	\
+		  System/SPLam/lhsPrimVarJacobian.o		\
+		  System/SPLam/outputInitialize.o		\
+		  System/SPLam/outputSolution.o			\
+		  System/SPLam/outputSurfaceForces.o		\
+		  System/SPLam/finalize.o			\
+		  System/SPLam/StrandSPLamInputRead.o		\
+		  System/SPLam/StrandSPLamStepHeader.o		\
+		  System/SPLam/StrandSPLamBc.o			\
+		  System/SPLam/StrandSPLamBcInviscidWall.o	\
+		  System/SPLam/StrandSPLamBcViscousWall.o	\
+		  System/SPLam/StrandSPLamBcInflow.o		\
+		  System/SPLam/StrandSPLamBcOutflow.o		\
+		  System/SPLam/StrandSPLamBcFarField.o		\
+		  System/SPLam/StrandSPLamBcDirichlet.o		\
+		  System/SPLam/StrandSPLamBcFrozen.o		\
+		  System/SPLam/cusp.o

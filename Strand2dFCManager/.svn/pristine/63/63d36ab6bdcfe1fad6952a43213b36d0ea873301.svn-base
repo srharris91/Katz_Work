@@ -1,0 +1,15 @@
+clear;
+start  = 1; %beginning entry to use in force file
+finish = 200; %ending entry to use in force file
+dtUnsteady = .002; %unsteady time step used
+L = 1.; %length scale used in Strouhal number definition
+U = 3.47224999100007D1; %velocity scale used in Strouhal number definition
+data = importdata('forces.dat'); %name of input file
+time = data(start:finish,2);
+vort = data(start:finish,4);
+[freq,ampl,phas,cmplx]=MatFFT(time,vort);
+ampl(1) = 0.;
+[Y,I] = max(ampl);
+St = freq(I)*L/U
+subplot(2,1,1), plot(freq,ampl,'k-')
+subplot(2,1,2), plot(time,vort,'k-')

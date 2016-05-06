@@ -1,0 +1,23 @@
+digraph "Tri2dFCBlockSolver::connectivity"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCBlockSolver\l::connectivity",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCBlockSolver\l::localGrid",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a08cbc8b71d16504b1a386b777682d214",tooltip="Form local grid based on global grid. "];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCBlockSolver\l::elementConn",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#aa146d879159be3c428158991284ea335",tooltip="Returns solution point locations in the standard equilateral triangle. "];
+  Node2 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="Tri2dFCBlockSolver\l::solutionPoints",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#af85bea6048c0c2ad865934e8e109968d",tooltip="Returns solution point locations in the standard equilateral triangle. "];
+  Node1 -> Node5 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node5 [label="Tri2dFCBlockSolver\l::edgeExtract",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a10e5813f99c5b9e54889c9a76cfc5a8c",tooltip="Form edge data structure. "];
+  Node1 -> Node6 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node6 [label="Tri2dFCBlockSolver\l::reorderNodes",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#af7483365b579892d85920a8c908c62b2",tooltip="Reorder nodes with boundary nodes at the end of the list. "];
+  Node6 -> Node7 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node7 [label="Tri2dFCSystem::bcConflict",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCSystem.html#ad839110e54f7641a67ecf083a8d53bbe",tooltip="Resolves boundary conflicts at sharp corners. "];
+  Node1 -> Node8 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node8 [label="Tri2dFCBlockSolver\l::edgeExtractVis",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#ad752d9c58a355f588f986e4634833b56",tooltip="Extract edge data structure for viscous terms. "];
+  Node1 -> Node9 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 [label="Tri2dFCBlockSolver\l::gradStencil",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a3b0bcd4a353dcfa209dadb97cabbfaa8",tooltip="Form FEM gradient stencils. "];
+}

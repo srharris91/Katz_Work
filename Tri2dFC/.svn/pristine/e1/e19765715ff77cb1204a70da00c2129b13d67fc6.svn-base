@@ -1,0 +1,95 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::gradSetupS()
+{
+  // lr(i,j) = (dl_j/dr)_i (a row is all Lagrange polynomials (derivatives)
+  // evaluated at a single mesh point i, same with the other derivatives)
+  Array2D<double> rs(nneS,3);
+  Array2D<double> lc(nneS,nneS); //coefficients for each Lagrange polynomial
+  int orderE=2; //quadratic elements 
+  solutionPoints(orderE,
+		 spacing,
+		 &rs(0,0));
+
+  bool test=true;
+  lagrangePoly(test,
+	       orderE,
+	       &rs(0,0),
+	       &lc(0,0));
+
+  lrS.set(0.);
+  lsS.set(0.);
+  lrrS.set(0.);
+  lssS.set(0.);
+  lrsS.set(0.);
+  int j,km,lm,kmm,lmm;
+  double ri,si;
+  for (int n=0; n<nneS; n++) // nth Lagrange polynomial
+    for (int i=0; i<nneS; i++){ // ith mesh point
+      j  = 0;
+      ri = rs(i,0);
+      si = rs(i,1);
+      for (int k=0; k<=orderE; k++)
+	for (int l=0; l<=orderE-k; l++){
+	  km         = max(0,k-1);
+	  lm         = max(0,l-1);
+	  kmm        = max(0,k-2);
+	  lmm        = max(0,l-2);
+	  lrS (i,n) +=((double)k)*pow(ri,km)*pow(si,l )*lc(n,j);
+	  lsS (i,n) +=((double)l)*pow(ri,k )*pow(si,lm)*lc(n,j);
+	  lrrS(i,n) +=((double)(k*km))*pow(ri,kmm)*pow(si,l  )*lc(n,j  );
+	  lssS(i,n) +=((double)(l*lm))*pow(ri,k  )*pow(si,lmm)*lc(n,j  );
+	  lrsS(i,n) +=((double)(k*l ))*pow(ri,km )*pow(si,lm )*lc(n,j++);
+	}}
+
+
+  // Jacobian terms
+  xrS.set(0.);
+  yrS.set(0.);
+  xsS.set(0.);
+  ysS.set(0.);
+  jacS.set(0.);
+
+  test = false;
+  double lrm,lsm;
+  for (int n=0; n<nElemS; n++){
+
+    // evaluate the Jacobian terms at the mesh points
+    for (int i=0; i<nngS; i++){ //ith mesh point
+      ri = rs(gNode(n,i),0);
+      si = rs(gNode(n,i),1);
+      for (int m=0; m<nneS; m++){ //mth Lagrange polynomial
+	j   = 0;
+	lrm = 0.;
+	lsm = 0.;
+	for (int k=0; k<=orderE; k++){
+	  for (int l=0; l<=orderE-k; l++){
+	    km   = max(0,k-1);
+	    lm   = max(0,l-1);
+	    lrm +=((double)k)*pow(ri,km)*pow(si,l )*lc(m,j  );
+	    lsm +=((double)l)*pow(ri,k )*pow(si,lm)*lc(m,j++);
+	  }
+	}
+	xrS(n,i) += lrm*x(elemS(n,m),0);
+	yrS(n,i) += lrm*x(elemS(n,m),1);
+	xsS(n,i) += lsm*x(elemS(n,m),0);
+	ysS(n,i) += lsm*x(elemS(n,m),1);
+      }
+      jacS(n,i) = xrS(n,i)*ysS(n,i)-yrS(n,i)*xsS(n,i);
+    }}
+
+  /*
+  for (int n=0; n<nElemS; n++){
+    cout << n << " ";
+    for (int i=0; i<nngS; i++) cout << jacS(n,i) << " ";
+    cout << endl;
+  }
+  exit(0);
+  */
+
+
+  rs.deallocate();
+  lc.deallocate();
+}

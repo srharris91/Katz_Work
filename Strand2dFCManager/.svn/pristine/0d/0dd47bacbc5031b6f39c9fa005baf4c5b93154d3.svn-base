@@ -1,0 +1,89 @@
+function [freq,ampl,phas,cmplx]=MatFFT(tvec,pvec)
+% MatFFT.m      FFT that outputs frequency/Fourier Coefficients/Phase
+%
+% This function determines the frequency and pressure spectrum level
+% Function call structure:
+%                       [freq,ampl,phas,cmplx]=MatFFT(tvec,pvec)
+%
+% Inputs:       tvec - time of input data series, secs (starting at 0 secs)
+%               pvec - amplitude of input data series
+%
+% Outputs:      freq - frequency of FFT (from 0 Hz to Nyquist frequency)
+%               ampl - linear amplitude of FFT
+%               phas - phase of FFT in radians
+%               cmplx- complex amplitude of FFT
+%
+
+% The inputs (tvec and pvec) must be a column vector (i.e. size = [N   1]).
+% Transpose inputs (tvec and pvec) if not in column vector form.
+[mvec,nvec] = size(tvec);
+if nvec ~= 1
+    tvec = tvec';
+    pvec = pvec';
+    convert_vec = 1;
+else
+    convert_vec = 0;
+end
+
+% Deterine the time and pressure vector to be fed into FFT.  The number of
+% data points introduce to the FFT function must be even
+Ninput = length(tvec);
+if mod(Ninput,2) == 1           % if number of data points in tvec, pvec is ODD 
+    t = tvec(1:Ninput-1);
+    p = pvec(1:Ninput-1);
+else                            % if number of data points in tvec, pvec is EVEN
+    t = tvec(1:Ninput);
+    p = pvec(1:Ninput);
+end
+
+% number of data points (in time) that will be input into FFT
+NN = length(t);
+
+% number of data points used to respresent the results from FFT
+NFFT = NN/2;
+
+% time discretization in secs
+dt = t(2)-t(1);
+
+% duration in secs (actually used)
+%TT = t(1)+dt*(NN-1)                         ; % secs,
+TT = max(t-t(1));
+
+% frequency bandwidth (actually used)
+fband = 1/TT                                ; % Hz,
+
+% perform FFT
+Mag_cmplx = fft(p,NN)                       ;
+Mag_absol = abs(Mag_cmplx)                  ;
+cmplx = Mag_cmplx                           ;
+
+% phase
+phas(1:NFFT+1,1) = ...
+    unwrap(angle(Mag_cmplx(1:NFFT+1,1)))    ; % rad,
+
+% assign to single-sided amplitude vector
+ampl(     1  ,1) =    Mag_absol(       1,1)/NN; 
+ampl(2:NFFT+1,1) = 2.*Mag_absol(2:NFFT+1,1)/NN; % <-------------------- SINGLE!
+
+% frequency vector
+%freq(1:NFFT+1,1) = (1/dt)*(0:NFFT)/NN       ; % Hz,
+freq(1:NFFT+1,1) = fband*((1:NFFT+1)-1);
+
+% convert outputs to be of the same vectorial form as inputs
+if convert_vec == 1
+    freq = freq';
+    ampl = ampl';
+    phas = phas';
+    cmplx = cmplx';
+end
+
+% display results
+%disp( ' ');
+%disp( '*** MatFFT.m');
+%disp(['NN   = ' num2str(  NN,'%10.0f\t') 'Durat = ' num2str(   TT,'%10.3f') ' secs']);
+%disp(['NFFT = ' num2str(NFFT,'%10.0f\t') 'fband = ' num2str(fband,'%10.3f') ' Hz']);
+
+% clear interim work variables
+clear Mag_cmplx; clear Mag_absol;
+
+return;

@@ -1,0 +1,35 @@
+#include "Tri2dFCSPLam.h"
+
+
+void Tri2dFCSPLam::rhsVisFluxY(const int& npts,
+			       const double* q,
+			       const double* qa,
+			       const double* qx,
+			       const double* qy,
+			       const double* qax,
+			       const double* qay,
+			       double* g)
+{
+  int iq,iqa;
+  double u,v,mu,kp,ux,vx,uy,vy,Ty,dd,syx,syy;
+  for (int n=0; n<npts; n++){
+    iq      = nq *n;
+    iqa     = nqa*n;
+    u       = qa[iqa+1];
+    v       = qa[iqa+2];
+    mu      = qa[iqa+4];
+    kp      = qa[iqa+5];
+    ux      = qax[iqa+1];
+    vx      = qax[iqa+2];
+    uy      = qay[iqa+1];
+    vy      = qay[iqa+2];
+    Ty      = qay[iqa+3];
+    dd      =(ux+vy)/3.;
+    syx     =    mu*(uy+vx);
+    syy     = 2.*mu*(vy-dd);
+    g[iq  ] = 0.;
+    g[iq+1] = syx;
+    g[iq+2] = syy;
+    g[iq+3] = u*syx+v*syy+kp*Ty;
+  }
+}

@@ -1,0 +1,49 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::gradSetup()
+{
+  // lr(i,j) = (dl_j/dr)_i (a row is all Lagrange polynomials (derivatives)
+  // evaluated at a single mesh point i, same with the other derivatives)
+  Array2D<double> rs(nne,3);
+  Array2D<double> lc(nne,nne); //coefficients for each Lagrange polynomial
+  int orderE=3-level; 
+  solutionPoints(orderE,
+		 spacing,
+		 &rs(0,0));
+
+  bool test=true;
+  lagrangePoly(test,
+	       orderE,
+	       &rs(0,0),
+	       &lc(0,0));
+
+  lr.set(0.);
+  ls.set(0.);
+  lrr.set(0.);
+  lss.set(0.);
+  lrs.set(0.);
+  int j,km,lm,kmm,lmm;
+  double ri,si;
+  for (int n=0; n<nne; n++) // nth Lagrange polynomial
+    for (int i=0; i<nne; i++){ // ith mesh point
+      j  = 0;
+      ri = rs(i,0);
+      si = rs(i,1);
+      for (int k=0; k<=orderE; k++)
+	for (int l=0; l<=orderE-k; l++){
+	  km        = max(0,k-1);
+	  lm        = max(0,l-1);
+	  kmm       = max(0,k-2);
+	  lmm       = max(0,l-2);
+	  lr (i,n) +=((double)k)*pow(ri,km)*pow(si,l )*lc(n,j);
+	  ls (i,n) +=((double)l)*pow(ri,k )*pow(si,lm)*lc(n,j);
+	  lrr(i,n) +=((double)(k*km))*pow(ri,kmm)*pow(si,l  )*lc(n,j  );
+	  lss(i,n) +=((double)(l*lm))*pow(ri,k  )*pow(si,lmm)*lc(n,j  );
+	  lrs(i,n) +=((double)(k*l ))*pow(ri,km )*pow(si,lm )*lc(n,j++);
+	}}
+
+  rs.deallocate();
+  lc.deallocate();
+}

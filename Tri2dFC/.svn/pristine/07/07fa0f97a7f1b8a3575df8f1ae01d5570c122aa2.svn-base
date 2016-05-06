@@ -1,0 +1,196 @@
+#include "Tri2dFCBlockSolver.h"
+#include "lagrangePoly.h"
+
+
+void Tri2dFCBlockSolver::gradSetupQuadratic()
+{
+  // form quadratic sub elements
+  int nElemQ = 3*nElem;
+  int nneQ   = 6; //quadratic elements
+  int nngQ   = 4; //quadratic elements
+  Array2D<int> elemQ(nElemQ,nneQ),gNode(nElemQ,nngQ);
+  int m=0;
+  for (int n=0; n<nElem; n++){
+    elemQ(m  ,0) = elem(n,0);
+    elemQ(m  ,1) = elem(n,4);
+    elemQ(m  ,2) = elem(n,7);
+    elemQ(m  ,3) = elem(n,3);
+    elemQ(m  ,4) = elem(n,9);
+    elemQ(m  ,5) = elem(n,8);
+    gNode(m  ,0) = 0;
+    gNode(m  ,1) = 3;
+    gNode(m  ,2) = 4;
+    gNode(m++,3) = 5;
+    elemQ(m  ,0) = elem(n,3);
+    elemQ(m  ,1) = elem(n,1);
+    elemQ(m  ,2) = elem(n,6);
+    elemQ(m  ,3) = elem(n,4);
+    elemQ(m  ,4) = elem(n,5);
+    elemQ(m  ,5) = elem(n,9);
+    gNode(m  ,0) = 1;
+    gNode(m  ,1) = 4;
+    gNode(m  ,2) = 5;
+    gNode(m++,3) = 3;
+    elemQ(m  ,0) = elem(n,8);
+    elemQ(m  ,1) = elem(n,5);
+    elemQ(m  ,2) = elem(n,2);
+    elemQ(m  ,3) = elem(n,9);
+    elemQ(m  ,4) = elem(n,6);
+    elemQ(m  ,5) = elem(n,7);
+    gNode(m  ,0) = 2;
+    gNode(m  ,1) = 5;
+    gNode(m  ,2) = 3;
+    gNode(m++,3) = 4;
+  }
+
+  /*
+  for (int n=0; n<nElemQ; n++){
+    cout << n << " ";
+    for (int j=0; j<nneQ; j++) cout << elemQ(n,j) << " ";
+    cout << endl;
+  }
+  exit(0);
+  */
+
+
+  // Jacobian terms
+  Array2D <double> xr(nElemQ,nngQ),yr(nElemQ,nngQ),xs(nElemQ,nngQ),
+    ys(nElemQ,nngQ),jac(nElemQ,nngQ),rs(nneQ,3),lc(nneQ,nneQ);
+  xr.set(0.);
+  yr.set(0.);
+  xs.set(0.);
+  ys.set(0.);
+  jac.set(0.);
+
+  int orderE=2; //quadratic elements 
+  solutionPoints(orderE,
+		 spacing,
+		 &rs(0,0));
+
+  bool test=true;
+  lagrangePoly(test,
+	       orderE,
+	       &rs(0,0),
+	       &lc(0,0));
+
+  int j,km,lm;
+  double lrm,lsm,ri,si;
+  for (int n=0; n<nElemQ; n++){
+
+    // evaluate the Jacobian terms at the mesh points
+    for (int i=0; i<nngQ; i++){ //ith mesh point
+      ri = rs(gNode(n,i),0);
+      si = rs(gNode(n,i),1);
+      for (int m=0; m<nneQ; m++){ //mth Lagrange polynomial
+	j   = 0;
+	lrm = 0.;
+	lsm = 0.;
+	for (int k=0; k<=orderE; k++)
+	  for (int l=0; l<=orderE-k; l++){
+	    km   = max(0,k-1);
+	    lm   = max(0,l-1);
+	    lrm +=((double)k)*pow(ri,km)*pow(si,l )*lc(m,j  );
+	    lsm +=((double)l)*pow(ri,k )*pow(si,lm)*lc(m,j++);
+	  }
+	xr(n,i) += lrm*x(elemQ(n,m),0);
+	yr(n,i) += lrm*x(elemQ(n,m),1);
+	xs(n,i) += lsm*x(elemQ(n,m),0);
+	ys(n,i) += lsm*x(elemQ(n,m),1);
+      }
+      jac(n,i) = xr(n,i)*ys(n,i)-yr(n,i)*xs(n,i);
+    }}
+
+
+  // lr(i,j) = (dl_j/dr)_i (a row is all Lagrange polynomials (derivatives)
+  // evaluated at a single mesh point i, same with the other derivatives)
+  Array2D<double> lr(nneQ,nneQ),ls(nneQ,nneQ),lrr(nneQ,nneQ),
+    lss(nneQ,nneQ),lrs(nneQ,nneQ);
+  lr.set(0.);
+  ls.set(0.);
+  lrr.set(0.);
+  lss.set(0.);
+  lrs.set(0.);
+  int kmm,lmm;
+  for (int n=0; n<nneQ; n++) // nth Lagrange polynomial
+    for (int i=0; i<nneQ; i++){ // ith mesh point
+      j  = 0;
+      ri = rs(i,0);
+      si = rs(i,1);
+      for (int k=0; k<=orderE; k++)
+	for (int l=0; l<=orderE-k; l++){
+	  km        = max(0,k-1);
+	  lm        = max(0,l-1);
+	  kmm       = max(0,k-2);
+	  lmm       = max(0,l-2);
+	  lr (i,n) +=((double)k)*pow(ri,km)*pow(si,l )*lc(n,j);
+	  ls (i,n) +=((double)l)*pow(ri,k )*pow(si,lm)*lc(n,j);
+	  lrr(i,n) +=((double)(k*km))*pow(ri,kmm)*pow(si,l  )*lc(n,j  );
+	  lss(i,n) +=((double)(l*lm))*pow(ri,k  )*pow(si,lmm)*lc(n,j  );
+	  lrs(i,n) +=((double)(k*l ))*pow(ri,km )*pow(si,lm )*lc(n,j++);
+	}}
+
+
+  // compute averaged quadratic FEM gradient coefficients
+  Array1D<double> sumj(nNode);
+  sumj.set(0.);
+  for (int n=0; n<nElemQ; n++)
+    for (int i=0; i<nngQ; i++){
+      m                 = gNode(n,i);
+      sumj(elemQ(n,m)) += jac(n,i);
+    }
+  for (int n=0; n<nNode; n++) sumj(n) = 1./sumj(n);
+
+  int k1,k2;
+  double xri,yri,xsi,ysi;
+  Array2D<double> ax(nNode,2);
+  ax.set(0.);
+  gxQ.set(0.);
+  for (int n=0; n<nElemQ; n++)
+    for (int i=0; i<nngQ; i++){
+      m   = gNode(n,i);
+      k1  = elemQ(n,m);
+      xri = xr(n,i);
+      yri = yr(n,i);
+      xsi = xs(n,i);
+      ysi = ys(n,i);
+      for (int j=0; j<nneQ; j++){
+	k2       = elemQ(n,j);
+	ax(k2,0) = lr(m,j)*ysi-ls(m,j)*yri;
+	ax(k2,1) =-lr(m,j)*xsi+ls(m,j)*xri;
+      }
+      for(int j=psp2(k1); j<psp2(k1+1); j++){
+	k2        = psp1(j);
+	gxQ(j,0) += ax(k2,0);
+	gxQ(j,1) += ax(k2,1);
+      }
+      for (int j=0; j<nneQ; j++){
+	k2       = elemQ(n,j);
+	ax(k2,0) = 0.;
+	ax(k2,1) = 0.;
+      }}
+
+  for (int n=0; n<nNode; n++)
+    for (int i=psp2(n); i<psp2(n+1); i++){
+      gxQ(i,0) *= sumj(n);
+      gxQ(i,1) *= sumj(n);
+    }
+
+
+  // deallocate work arrays
+  elemQ.deallocate();
+  gNode.deallocate();
+  xr.deallocate();
+  yr.deallocate();
+  xs.deallocate();
+  ys.deallocate();
+  jac.deallocate();
+  rs.deallocate();
+  lc.deallocate();
+  lr.deallocate();
+  ls.deallocate();
+  lrr.deallocate();
+  lss.deallocate();
+  lrs.deallocate();
+  sumj.deallocate();
+  ax.deallocate();
+}

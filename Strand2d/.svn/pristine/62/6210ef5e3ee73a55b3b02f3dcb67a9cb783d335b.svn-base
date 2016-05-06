@@ -1,0 +1,87 @@
+#include "StrandSPTurbSA.h"
+
+
+void StrandSPTurbSA::rhsDisFlux(const int& npts,
+			     const double* A,
+			     const double* xv,
+			     const double* ql,
+			     const double* qr,
+			     double* f)
+{
+  // CUSP dissipative flux terms
+  int iq,iA,j=1;
+  double Ax,Ay,rhl,rhr,rl,rr,dd,ua,va,ha,cs,qs,qm,rc0,efix=.5,rc,rp,l,a,
+    fdp4,fl,fr,fdp,pl,pr,t,rul,rvl,re,rqq,rur,rvr,cc,qq,qqs;
+  for (int n=0; n<npts; n++){
+    iq      = nq  *n;
+    iA      = ndim*n;
+    Ax      = A[iA  ];
+    Ay      = A[iA+1];
+
+    rl      = ql[iq  ];
+    rul     = ql[iq+1];
+    rvl     = ql[iq+2];
+    re      = ql[iq+3];
+    rqq     =(rul*rul+rvl*rvl)/rl;
+    pl      = gm1*(re-.5*rqq);
+    rhl     = re+pl;
+    rr      = qr[iq  ];
+    rur     = qr[iq+1];
+    rvr     = qr[iq+2];
+    re      = qr[iq+3];
+    rqq     =(rur*rur+rvr*rvr)/rr;
+    pr      = gm1*(re-.5*rqq);
+    rhr     = re+pr;
+
+    rl      = sqrt(rl);
+    rr      = sqrt(rr);
+    dd      = 1./(rl+rr);
+    rl      = 1./rl;
+    rr      = 1./rr;
+    ua      =(rul*rl+rur*rr)*dd;
+    va      =(rvl*rl+rvr*rr)*dd;
+    ha      =(rhl*rl+rhr*rr)*dd;
+    qq      = .5*(ua*ua+va*va);
+    cc      = gm1*(ha-qq);
+
+    cs      = sqrt(cc*(Ax*Ax+Ay*Ay));
+    qs      = Ax*ua+Ay*va-xv[n];
+    qqs     = qs;
+
+    for (int k=0; k<nq; k++)
+      f[iq+k] =.125*(fabs(qs)+cs)*(qr[iq+k]-ql[iq+k]);
+    f[iq+4] =.5*fabs(qqs)*(qr[iq+4]-ql[iq+4]);
+
+
+    /*
+    qm      = qs/cs;
+    rc0     = efix*cs;
+    rc      = fabs(qs);
+    if (rc < rc0) rc = .5*(rc0+rc*rc/rc0);
+    rc     *= .5;
+    rp      = .5;
+    if (qs < 0.) rp = -.5;
+    if (fabs(qm) < 1.){
+      l     = fabs(qs)-cs;
+      a     =(fabs(qs)+l)/(fabs(qs)-l);
+      if (a < 0.) a = 0.;
+      rp   *= a;
+    }
+    rc     -=(rp*qs);
+    qs      =(Ax*ql[iq+1]+Ay*ql[iq+2])/ql[iq]-xv[n];
+    fdp4    =-qs*pl;
+    fl      = rc+rp*qs;
+    qs      =(Ax*qr[iq+1]+Ay*qr[iq+2])/qr[iq]-xv[n];
+    fdp4   +=(qs*pr);
+    fdp4   *= rp;
+    fr      = rc+rp*qs;
+    fdp     = rp*(pr-pl);
+    f[iq  ] = fr*qr[iq  ]-fl*ql[iq  ];
+    f[iq+1] = fr*qr[iq+1]-fl*ql[iq+1]+Ax   *fdp;
+    f[iq+2] = fr*qr[iq+2]-fl*ql[iq+2]+Ay   *fdp;
+    f[iq+3] = fr*qr[iq+3]-fl*ql[iq+3]+xv[n]*fdp+fdp4;
+    f[iq+4] =.5*fabs(qqs)*(qr[iq+4]-ql[iq+4]);
+    //f[iq+4] = fr*qr[iq+4]-fl*ql[iq+4];
+    */
+  }
+}

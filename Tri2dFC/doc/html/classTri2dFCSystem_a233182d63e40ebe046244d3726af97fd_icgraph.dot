@@ -1,0 +1,13 @@
+digraph "Tri2dFCSystem::rhsInvFluxX"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node1 [label="Tri2dFCSystem::rhsInvFluxX",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled" fontcolor="black"];
+  Node1 -> Node2 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node2 [label="Tri2dFCBlockSolver\l::rhsInviscid",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#af32e7612e7a6b9c1104b316a88a3c33e",tooltip="Adds inviscid terms to the RHS residual. "];
+  Node2 -> Node3 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="Tri2dFCBlockSolver\l::computeRHS",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#a79051296391b1e0cd7f383a0bfcfff48",tooltip="Computes the full right-hand side discretization. "];
+  Node3 -> Node4 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="Tri2dFCBlockSolver\l::solve",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classTri2dFCBlockSolver.html#aec98ff72ee09a034ca9e8dcf40a997ae",tooltip="Solves the linear system and update solution. "];
+}

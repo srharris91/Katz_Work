@@ -1,0 +1,531 @@
+// File:        StrandMultiBlockSolver.C
+// Package:     STRANDGEN
+//              Parallel Infrastructure for Cartesian & Strand Solvers
+// Release:     $Name:  $
+// Revision:    $Revision:  $
+// Modified:    $Date:  $
+// Description: Manages multi-block solver procedures
+//              
+
+
+#include "StrandMultiBlockSolver.h"
+
+// Fortran interface definitions
+extern "C" {
+  void stepheader_(const int&,
+                   const int&);
+}
+
+StrandMultiBlockSolver* StrandMultiBlockSolver::smbs_manager_instance = NULL;
+StrandMultiBlockMesh* StrandMultiBlockSolver::d_smbm = NULL;
+StrandGlobalMesh* StrandMultiBlockSolver::d_sgm = NULL;
+int StrandMultiBlockSolver::d_nStrandBlocks = 0;
+int StrandMultiBlockSolver::d_nLevels = 0;
+int StrandMultiBlockSolver::d_mgCycle = 0;
+int StrandMultiBlockSolver::d_mgType = 0;
+int StrandMultiBlockSolver::d_pseudoStepTot = 0;
+int StrandMultiBlockSolver::d_restartStep = 0;
+int StrandMultiBlockSolver::d_nSteps = 0;
+int StrandMultiBlockSolver::d_nPseudoSteps0 = 0;
+int StrandMultiBlockSolver::d_nPseudoSteps = 0;
+int StrandMultiBlockSolver::d_nLinearSteps = 0;
+int StrandMultiBlockSolver::d_nq = 0;
+int StrandMultiBlockSolver::d_npos = 0;
+double* StrandMultiBlockSolver::d_rms = NULL;
+int* StrandMultiBlockSolver::d_mgLevel = NULL;
+int* StrandMultiBlockSolver::d_mgMode = NULL;
+bool StrandMultiBlockSolver::d_initialized = false;
+
+
+// @brief Create singleton instance.
+void StrandMultiBlockSolver::createManager()
+{
+   if (!smbs_manager_instance)
+     {
+       smbs_manager_instance = new StrandMultiBlockSolver();
+     }
+}
+
+
+// @brief Return a pointer to the singleton instance.
+StrandMultiBlockSolver* StrandMultiBlockSolver::getManager()
+{
+   if (!smbs_manager_instance)
+     {
+       createManager();
+     }
+   return(smbs_manager_instance);
+}
+
+
+// @brief Deallocate the manager instance.
+void StrandMultiBlockSolver::freeManager()
+{
+   if (smbs_manager_instance)
+     {
+       delete smbs_manager_instance;
+     }
+
+   smbs_manager_instance = ((StrandMultiBlockSolver*) NULL);
+}
+
+
+// initialize
+void StrandMultiBlockSolver::initialize(string& input_file)
+{
+  // obtain global mesh data and pointers to strand blocks
+  d_sgm = StrandGlobalMesh::getManager();
+
+  // read in and return certain global inputs for solver
+  d_strandBlockSolvers.resize(1);
+  d_strandBlockSolvers[0].input(input_file);
+  d_restartStep   = d_strandBlockSolvers[0].getRestartStep();
+  d_nSteps        = d_strandBlockSolvers[0].getNSteps();
+  d_nPseudoSteps  = d_strandBlockSolvers[0].getNPseudoSteps();
+  d_nPseudoSteps0 = d_strandBlockSolvers[0].getNPseudoSteps0();
+  d_nLinearSteps  = d_strandBlockSolvers[0].getNLinearSteps();
+  d_nLevels       = d_strandBlockSolvers[0].getNLevels();
+  d_mgCycle       = d_strandBlockSolvers[0].getMgCycle();
+  d_mgType        = d_strandBlockSolvers[0].getMgType();
+  d_nq            = d_strandBlockSolvers[0].getNq();
+
+  // fill in mgLevel and mgMode vectors
+  d_npos    = 0;
+  bool down = true;
+  int level = 0;
+  int* kcyc = new int[d_nLevels];
+  for (int n=0; n<d_nLevels; n++)
+    {
+      *(kcyc+n) = 0;
+    }
+  while (true)
+    {
+      //advance the solution in time on the current multigrid level
+      if (down)
+	{
+	  if (level < d_nLevels-1)
+	    {
+	      *(kcyc+level) += 1;
+	      level++;
+	      d_npos++;
+	    }
+	  else
+	    {
+	      down = false;
+	    }
+	}
+      else
+	{
+	  if (level > 0) //correct a fine level
+	    {
+	      level--;
+	      d_npos++;
+	    }
+	  if (level == 0)
+	    {
+	      down = true;
+	      break; //if back on fine level, cycle is done
+	    }
+	  if (*(kcyc+level) < d_mgCycle)
+	    {
+	      down = true;
+	    }
+	  else
+	    {
+	      *(kcyc+level) = 0;
+	    }
+	}
+    }
+  d_npos = max(1,d_npos);
+  d_mgLevel = new int[d_npos+1];
+  d_mgMode  = new int[d_npos+1];
+
+  int npos  = 0;
+  down      = true;
+  level     = 0;
+  *(d_mgLevel+npos) = level;
+  *(d_mgMode+npos)  = 1;
+  for (int n=0; n<d_nLevels; n++)
+    {
+      *(kcyc+n) = 0;
+    }
+  while (true)
+    {
+      //advance the solution in time on the current multigrid level
+      if (down)
+	{
+	  if (level < d_nLevels-1)
+	    {
+	      *(kcyc+level) += 1;
+	      level++;
+	      npos++;
+	      *(d_mgLevel+npos) = level;
+	      *(d_mgMode+npos)  = 2;
+	    }
+	  else
+	    {
+	      down = false;
+	      *(d_mgMode+npos) = 3;
+	    }
+	}
+      else
+	{
+	  if (level > 0) //correct a fine level
+	    {
+	      level--;
+	      npos++;
+	      *(d_mgLevel+npos) = level;
+	      *(d_mgMode+npos)  = 5;
+	    }
+	  if (level == 0)
+	    {
+	      down = true;
+	      *(d_mgMode+npos) = 6;
+	      break; //if back on fine level, cycle is done
+	    }
+	  if (*(kcyc+level) < d_mgCycle)
+	    {
+	      down = true;
+	      *(d_mgMode+npos) = 4;
+	    }
+	  else
+	    {
+	      *(kcyc+level) = 0;
+	    }
+	}
+    }
+  if (d_nLevels == 1)
+    {
+      *(d_mgLevel) = 0;
+      *(d_mgMode)  = 1;
+      *(d_mgLevel+d_npos) = 0;
+      *(d_mgMode+d_npos)  = 6;
+    }
+  delete [] kcyc;
+  kcyc  = NULL;      
+  d_rms = new double[d_nq];
+
+  // obtain pointers to strandBlocks
+  d_smbm = StrandMultiBlockMesh::getManager();
+  d_nStrandBlocks = d_smbm->getNStrandBlocks();
+  d_strandBlocks.resize(d_nStrandBlocks);
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      d_strandBlocks[n] = d_smbm->getStrandBlock(n);
+    }
+
+  // create block solvers and initialize fine levels
+  d_strandBlockSolvers.resize(d_nStrandBlocks*d_nLevels);
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      int level = 0;
+      d_strandBlockSolvers[n].setStrandBlockData(*d_strandBlocks[n]);
+      d_strandBlockSolvers[n].initialize(level);
+    }
+
+  // create coarse solver blocks if using multigrid
+  for (int level=1; level<d_nLevels; level++)
+    {
+      for (int n=0; n<d_nStrandBlocks; n++)
+	{
+	  int parent = n+d_nStrandBlocks*(level-1);
+	  int child  = parent+d_nStrandBlocks;
+	  d_strandBlockSolvers[child].coarsen(level,
+					      d_strandBlockSolvers[parent]);
+	}
+    }
+
+  //  *** sync coarse levels for parallel implementation ***
+  // tasks: renumber coarse level cells to obtain global numbering,
+  // fill in neighbor information, perform any subsequent agglomeration
+
+  // initialize grid and solution data for coarse levels
+  for (int level=1; level<d_nLevels; level++)
+    {
+      for (int n=0; n<d_nStrandBlocks; n++)
+	{
+	  int m = n+d_nStrandBlocks*level;
+	  d_strandBlockSolvers[m].initialize(level);
+	}
+    }
+
+  d_initialized = true;
+}
+
+
+// take a time step
+void StrandMultiBlockSolver::preparePseudoStep(int& step,
+					       int& pseudoStep)
+{
+  // shift time levels/initialize the solution at n+1 for unsteady case
+  if (step > 0 && pseudoStep == 0)
+    {
+      for (int level=0; level<d_nLevels; level++)
+        {
+           d_strandBlockSolvers[level].shiftTime(step,
+                                                 level);
+        }
+    }
+
+  // prepare for this non-linear step
+  for (int level=0; level<d_nLevels; level++)
+    {
+       d_strandBlockSolvers[level].preparePseudoStep(level);
+    }
+}
+
+
+// take a time step
+void StrandMultiBlockSolver::takePseudoStep(int& step,
+					    int& pseudoStep,
+					    int& converged)
+{
+  // declare and initialize working variables
+  int j;
+  int level;
+  int mode;
+  int m;
+  int jj;
+  int llevel;
+  int mmode;
+  int mm;
+  int n;
+  int nn;
+  int linearConverged;
+  j     = 0;
+  level = *d_mgLevel;
+  mode  = *d_mgMode;
+  m     = level*d_nStrandBlocks;
+
+  // assume converged, unless it is found otherwise
+  converged = 1;
+
+  // NLMG cycle
+  do
+    {
+      // restrict from the parent level
+      if (mode == 2 || mode == 3)
+	{
+	  for (n=0; n<d_nStrandBlocks; n++)
+	    {
+	      d_strandBlockSolvers[m+n].restrictQ(level,
+						  mode);
+	      d_strandBlockSolvers[m+n].restrictR(level,
+						  mode);
+	    }
+	}
+
+      // compute RHS
+      if (mode <= 4)
+	{
+
+	  // *** partitions communicate ***
+
+	  for (n=0; n<d_nStrandBlocks; n++)
+	    {
+	      d_strandBlockSolvers[m+n].computeRHS(step,
+						   pseudoStep,
+						   level,
+						   mode);
+
+	      // start of LMG cycle
+	      linearConverged = 0;
+	      for (nn=0; nn<d_nLinearSteps && linearConverged==0; nn++)
+		{
+		  jj     = j;
+		  llevel = *(d_mgLevel+jj);
+		  mmode  =-(*(d_mgMode+jj));
+		  mm     = llevel*d_nStrandBlocks;
+		  do
+		    {
+		      // restrict solution and residuals
+		      if ((mmode == -2 || mmode == -3) && (llevel != level))
+			{
+			  d_strandBlockSolvers[mm+n].restrictQ(llevel,
+							       mmode);
+			  d_strandBlockSolvers[mm+n].restrictR(llevel,
+							       mmode);
+			}
+		      
+		      // compute LHS and solve linear system and advance solution
+		      if (mmode >= -4)
+			{
+			  d_strandBlockSolvers[mm+n].computeLHS(step,
+								pseudoStep,
+								llevel,
+								mmode);
+			  d_strandBlockSolvers[mm+n].solve(step,
+							   pseudoStep,
+							   level,
+							   llevel,
+							   mmode,
+							   nn);
+			  if (level == llevel)
+			    {
+			      linearConverged = d_strandBlockSolvers[mm+n].getLinearConverged();
+			      if (level == 0) converged = d_strandBlockSolvers[mm+n].getConverged();
+			    }
+			}
+
+		      // recompute linear residual for LMG
+		      if ((mmode==-1 || mmode==-2 || mmode==-4) && (d_nLevels>1) && (d_mgType!=2))
+			{  			  
+			  mmode =-mmode;
+			  d_strandBlockSolvers[mm+n].solve(step,
+							   pseudoStep,
+							   level,
+							   llevel,
+							   mmode,
+							   nn);
+			  mmode =-mmode;
+			}
+
+		      // prolong to the parent level
+		      if ((mmode == -3 || mmode == -5) && (llevel != level))
+			{
+			  d_strandBlockSolvers[mm+n].prolong(llevel,
+							     mmode);
+			}
+		      
+		      // move to the next level
+		      jj++;
+		      llevel = *(d_mgLevel+jj);
+		      mmode  =-(*(d_mgMode+jj));
+		      mm     = llevel*d_nStrandBlocks;
+		    } while(llevel > level && d_mgType != 2);
+		}
+	    }
+	}
+
+      // recompute non-linear residual for NLMG
+      if ((mode==1 || mode==2 || mode==4) && (d_nLevels>1) && (d_mgType!=1))
+	{
+
+	  // *** partitions communicate ***
+
+	  mode =-mode;
+	  for (n=0; n<d_nStrandBlocks; n++)
+	    {
+	      d_strandBlockSolvers[m+n].computeRHS(step,
+						   pseudoStep,
+						   level,
+						   mode);
+	    }
+	  mode =-mode;
+	}
+
+      // prolong to the parent level
+      if (mode == 3 || mode == 5)
+	{
+	  for (n=0; n<d_nStrandBlocks; n++)
+	    {
+	      d_strandBlockSolvers[m+n].prolong(level,
+						mode);
+	    }
+	}
+
+      // move to next level
+      j++;
+      level = *(d_mgLevel+j);
+      mode  = *(d_mgMode+j);
+      m     = level*d_nStrandBlocks;
+    } while(level != 0 && d_mgType != 1);
+
+  // get convergence information
+  for (int i=0; i<d_nq; i++)
+    {
+      *(d_rms+i) = 0.;
+    }
+  for (int n=0; n<d_nStrandBlocks; n++)
+    {
+      const double* rmsBlock = d_strandBlockSolvers[n].getRms();
+      for (int i=0; i<d_nq; i++)
+	{
+	  *(d_rms+i) += *(rmsBlock+i);
+	}
+    }
+  //cout << "non-linear " << step << "\t" << pseudoStep << "\t";
+  //for (int i=0; i<d_nq; i++)
+  //  {
+  //    cout << *(d_rms+i) << "\t";
+  //  }
+  //cout << endl;
+}
+
+
+// clean up pseudo step
+void StrandMultiBlockSolver::cleanUpPseudoStep()
+{
+  for (int n=0; n<d_nStrandBlocks*d_nLevels; n++)
+    {
+      d_strandBlockSolvers[n].cleanUpPseudoStep();
+    }
+}
+
+
+// output time step
+void StrandMultiBlockSolver::outputStep(int& step)
+{
+  stepheader_(d_nStrandBlocks,
+              step);
+
+  d_strandBlockSolvers[0].output(step,
+                                 0);
+}
+
+
+// finalize
+void StrandMultiBlockSolver::finalize()
+{
+  for (int n=0; n<d_nStrandBlocks*d_nLevels; n++)
+    {
+      d_strandBlockSolvers[n].finalize();
+    }
+}
+
+
+// get methods
+const int& StrandMultiBlockSolver::getRestartStep()
+{
+  return(d_restartStep);
+}
+
+const int& StrandMultiBlockSolver::getNSteps()
+{
+  return(d_nSteps);
+}
+
+const int& StrandMultiBlockSolver::getNPseudoSteps()
+{
+  return(d_nPseudoSteps);
+}
+
+const int& StrandMultiBlockSolver::getNPseudoSteps0()
+{
+  return(d_nPseudoSteps0);
+}
+
+
+/*
+************************************************************************
+*
+* Protected Constructor and Destructor
+*
+************************************************************************
+*/
+
+StrandMultiBlockSolver::StrandMultiBlockSolver()
+{
+  d_initialized = false;
+}
+
+StrandMultiBlockSolver::~StrandMultiBlockSolver()
+{
+  if (d_rms    ) delete [] d_rms;
+  if (d_mgLevel) delete [] d_mgLevel;
+  if (d_mgMode ) delete [] d_mgMode;
+  d_rms     = NULL;
+  d_mgLevel = NULL;
+  d_mgMode  = NULL;
+  d_strandBlockSolvers.resize(0);
+}

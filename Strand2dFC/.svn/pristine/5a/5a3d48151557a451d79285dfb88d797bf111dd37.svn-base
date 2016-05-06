@@ -1,0 +1,314 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsInviscid()
+{
+  // surface edge inviscid flux contributions
+  double a=.5,b=.5,A1[2],A2[2],f[nq];
+  if (surfOrder == 1 || surfOrder == 2){ //linear scheme
+    int i1,i2,n1,n2;
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<nElemEdge; i++){
+	i1 = elemEdge(i,0);
+	i2 = elemEdge(i,1);
+	n1 = surfElem(n,i1);
+	n2 = surfElem(n,i2);
+	for (int j=0; j<nStrandNode; j++){
+	  A1[0] = yn(n1,j);
+	  A1[1] =-xn(n1,j);
+	  A2[0] = yn(n1,j);
+	  A2[1] =-xn(n1,j);
+	  sys->rhsInvFlux(1,a,b,&A1[0],&A2[0],&q(n1,j,0),&q(n2,j,0),
+			  &qa(n1,j,0),&qa(n2,j,0),&f[0]);
+	  for (int k=0; k<nq; k++){
+	    r(n1,j,k) += f[k];
+	  }
+	  A1[0] = yn(n2,j);
+	  A1[1] =-xn(n2,j);
+	  A2[0] = yn(n2,j);
+	  A2[1] =-xn(n2,j);
+	  sys->rhsInvFlux(1,a,b,&A1[0],&A2[0],&q(n1,j,0),&q(n2,j,0),
+			  &qa(n1,j,0),&qa(n2,j,0),&f[0]);
+	  for (int k=0; k<nq; k++){
+	    r(n2,j,k) -= f[k];
+	  }
+	}
+      }
+
+    for (int n=0; n<nBndNode; n++){
+      n1 = bndNode(n);
+      for (int j=0; j<nStrandNode; j++){
+	A1[0] = yn(n1,j);
+	A1[1] =-xn(n1,j);
+	sys->rhsInvFlux(1,a,b,&A1[0],&A1[0],&q(n1,j,0),&q(n1,j,0),
+			&qa(n1,j,0),&qa(n1,j,0),&f[0]);
+	for (int k=0; k<nq; k++) r(n1,j,k) += bndSign(n)*f[k];
+      }}
+  }
+
+  if (surfOrder == 3){ //corrected scheme
+    Array3D<double> fi(nSurfNode,nStrandNode,nq),
+      gi(nSurfNode,nStrandNode,nq);
+    Array4D<double> fx(nSurfNode,nStrandNode,nq,2),
+      gx(nSurfNode,nStrandNode,nq,2);
+    sys->rhsInvFluxX(nSurfNode*nStrandNode,&q(0,0,0),&qa(0,0,0),&fi(0,0,0));
+    sys->rhsInvFluxY(nSurfNode*nStrandNode,&q(0,0,0),&qa(0,0,0),&gi(0,0,0));
+    fx.set(0.);
+    gx.set(0.);
+    int ni,nm;
+    double xnj,ynj;
+    Array1D<int> sum(nSurfNode);
+    Array2D<double> fs(nStrandNode,nq),gs(nStrandNode,nq);
+    sum.set(0);
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<meshOrder+1; i++){ // ith point in the element
+	ni = surfElem(n,i);
+	fs.set(0.);
+	gs.set(0.);
+	for (int m=0; m<meshOrder+1; m++){ // mth Lagrange poly. in mapping
+	  nm = surfElem(n,m);
+	  for (int j=0; j<nStrandNode; j++)
+	    for (int k=0; k<nq; k++){
+	      fs(j,k) += ls(i,m)*fi(nm,j,k);
+	      gs(j,k) += ls(i,m)*gi(nm,j,k);
+	    }}
+	sum(ni)++;
+	for (int j=0; j<nStrandNode; j++){
+	  xnj = xn(ni,j)/jac(n,i,j);
+	  ynj = yn(ni,j)/jac(n,i,j);
+	  for (int k=0; k<nq; k++){
+	    fx(ni,j,k,0) += ynj*fs(j,k);
+	    fx(ni,j,k,1) -= xnj*fs(j,k);
+	    gx(ni,j,k,0) += ynj*gs(j,k);
+	    gx(ni,j,k,1) -= xnj*gs(j,k);
+	  }}}
+    for (int n=0; n<nSurfNode; n++)
+      for (int j=0; j<nStrandNode; j++)
+	for (int k=0; k<nq; k++){
+	  fx(n,j,k,0) /= sum(n);
+	  fx(n,j,k,1) /= sum(n);
+	  gx(n,j,k,0) /= sum(n);
+	  gx(n,j,k,1) /= sum(n);
+	}
+    sum.deallocate();
+    fs.deallocate();
+    gs.deallocate();
+
+    int i1,i2,n1,n2;
+    double fL,fR,yn1,xn1,yn2,xn2,xs1,xs2,ys1,ys2,fs1,fs2,ds5=.5*deltaS;
+    for (int n=0; n<nSurfElem; n++)
+      for (int i=0; i<nElemEdge; i++){
+	i1 = elemEdge(i,0);
+	i2 = elemEdge(i,1);
+	n1 = surfElem(n,i1);
+	n2 = surfElem(n,i2);
+	for (int j=0; j<nStrandNode; j++){
+	  yn1 = yn(n1,j);
+	  xn1 = xn(n1,j);
+	  yn2 = yn(n2,j);
+	  xn2 = xn(n2,j);
+	  xs1 = xs(n,i1,j);
+	  ys1 = ys(n,i1,j);
+	  xs2 = xs(n,i2,j);
+	  ys2 = ys(n,i2,j);
+	  for (int k=0; k<nq; k++){
+	    fs1        = yn1*(xs1*fx(n1,j,k,0)+ys1*fx(n1,j,k,1))
+	                -xn1*(xs1*gx(n1,j,k,0)+ys1*gx(n1,j,k,1));
+	    fs2        = yn2*(xs2*fx(n2,j,k,0)+ys2*fx(n2,j,k,1))
+	                -xn2*(xs2*gx(n2,j,k,0)+ys2*gx(n2,j,k,1));
+	    fL         = yn1*fi(n1,j,k)-xn1*gi(n1,j,k);
+	    fR         = yn2*fi(n2,j,k)-xn2*gi(n2,j,k);
+	    fL        += ds5*fs1;
+	    fR        -= ds5*fs2;
+	    f[k]       = .5*(fL+fR);
+	    r(n1,j,k) += f[k];
+	    r(n2,j,k) -= f[k];
+	  }}}
+
+    for (int n=0; n<nBndNode; n++){
+      n1 = bndNode(n);
+      for (int j=0; j<nStrandNode; j++){
+	A1[0] = yn(n1,j);
+	A1[1] =-xn(n1,j);
+	sys->rhsInvFlux(1,a,b,&A1[0],&A1[0],&q(n1,j,0),&q(n1,j,0),
+			&qa(n1,j,0),&qa(n1,j,0),&f[0]);
+	for (int k=0; k<nq; k++) r(n1,j,k) += bndSign(n)*f[k];
+      }}
+
+    fi.deallocate();
+    gi.deallocate();
+    fx.deallocate();
+    gx.deallocate();
+  }
+
+
+
+
+  // strand edge inviscid flux contributions
+  double dnr=1./deltaN;
+  Array2D<double> fs(nStrandNode,nq),fx(nStrandNode,nq),fy(nStrandNode,nq);
+  int ni,j,jH,mH,i1,i2,n1,n2;
+  double ds5=.5*deltaS,ds8=.125*deltaS*deltaS,ds6=deltaS/6.,
+    s1,s2,sa1,sa2,sL,sR,g[nq];
+  Array3D<double> rs(meshOrder+1,nStrandNode,nq);
+  Array3D<double> ss(meshOrder+1,nStrandNode,nq);
+  Array3D<double> s2s(meshOrder+1,nStrandNode,nq);
+  for (int n=0; n<nSurfElem; n++){
+    for (int i=0; i<meshOrder+1; i++){
+      ni = surfElem(n,i);
+
+      // compute directed fluxes at all nodes along this strand
+      sys->rhsInvFluxX(nStrandNode,&q(ni,0,0),&qa(ni,0,0),&fx(0,0));
+      sys->rhsInvFluxY(nStrandNode,&q(ni,0,0),&qa(ni,0,0),&fy(0,0));
+    
+      // flux derivatives at root boundary nodes
+      for (int j=0; j<nIcbNode; j++){
+	for (int k=0; k<nq; k++) f[k] = 0.;
+	for (int k=0; k<nq; k++) g[k] = 0.;
+	for (int m=0; m<nIcb; m++)
+	  for (int k=0; k<nq; k++){
+	    f[k] += icb(j,m)*fx(m,k);
+	    g[k] += icb(j,m)*fy(m,k);
+	  }
+	for (int k=0; k<nq; k++)
+	  rs(i,j,k) = dnr*(-ys(n,i,j)*f[k]+xs(n,i,j)*g[k]);
+      }
+
+      // flux derivatives at interior nodes
+      for (int j=nIcbNode; j<nStrandNode-nIcbNode; j++){
+	for (int k=0; k<nq; k++) f[k] = 0.;
+	for (int k=0; k<nq; k++) g[k] = 0.;
+	for (int m=0; m<nIci; m++)
+	  for (int k=0; k<nq; k++){
+	    f[k] += ici(m)*(fx(j+m+1,k)-fx(j-m-1,k));
+	    g[k] += ici(m)*(fy(j+m+1,k)-fy(j-m-1,k));
+	  }
+	for (int k=0; k<nq; k++)
+	  rs(i,j,k) = dnr*(-ys(n,i,j)*f[k]+xs(n,i,j)*g[k]);
+      }
+
+      // flux derivatives at tip boundary nodes
+      jH = nIcbNode-1;
+      for (int j=nStrandNode-nIcbNode; j<nStrandNode; j++){
+	for (int k=0; k<nq; k++) f[k] = 0.;
+	for (int k=0; k<nq; k++) g[k] = 0.;
+	mH = nIcb-1;
+	for (int m=0; m<nIcb; m++){
+	  for (int k=0; k<nq; k++){
+	    f[k] -= icb(jH,mH)*fx(nStrandNode-nIcb+m,k);
+	    g[k] -= icb(jH,mH)*fy(nStrandNode-nIcb+m,k);
+	  }
+	  mH--;
+	}
+	for (int k=0; k<nq; k++)
+	  rs(i,j,k) = dnr*(-ys(n,i,j)*f[k]+xs(n,i,j)*g[k]);
+	jH--;
+      }}
+
+    // source treatment
+    if (surfOrder == 1 || surfOrder == 2) //mass lumped
+      for (int i=0; i<nElemEdge; i++){
+	i1 = elemEdge(i,0);
+	i2 = elemEdge(i,1);
+	n1 = surfElem(n,i1);
+	n2 = surfElem(n,i2);
+	for (int j=0; j<nStrandNode; j++)
+	  for (int k=0; k<nq; k++){
+	    r(n1,j,k) += .5*deltaS*rs(i1,j,k);
+	    r(n2,j,k) += .5*deltaS*rs(i2,j,k);
+	  }}
+    
+    else if (surfOrder == 3){ //corrected source by edge
+      ss.set(0.);
+      s2s.set(0.);
+      for (int i=0; i<meshOrder+1; i++) // ith point in the element
+	for (int m=0; m<meshOrder+1; m++) // mth Lagrange poly. in mapping
+	  for (int j=0; j<nStrandNode; j++)
+	    for (int k=0; k<nq; k++) ss(i,j,k) += ls(i,m)*rs(m,j,k);
+      for (int i=0; i<meshOrder+1; i++) // ith point in the element
+	for (int m=0; m<meshOrder+1; m++) // mth Lagrange poly. in mapping
+	  for (int j=0; j<nStrandNode; j++)
+	    for (int k=0; k<nq; k++) s2s(i,j,k) += ls(i,m)*ss(m,j,k);
+      
+      for (int i=0; i<nElemEdge; i++){
+	i1 = elemEdge(i,0);
+	i2 = elemEdge(i,1);
+	n1 = surfElem(n,i1);
+	n2 = surfElem(n,i2);
+	for (int j=0; j<nStrandNode; j++)
+	  for (int k=0; k<nq; k++){
+	    s1         = rs(i1,j,k);
+	    s2         = rs(i2,j,k);
+	    sL         = s1-ds5*ss(i1,j,k)-ds8*s2s(i1,j,k);
+	    sR         = s2-ds5*ss(i2,j,k)-ds8*s2s(i2,j,k);
+	    sa1        = sL+sR;
+	    sL         = s1+ds5*ss(i1,j,k)-ds8*s2s(i1,j,k);
+	    sR         = s2+ds5*ss(i2,j,k)-ds8*s2s(i2,j,k);
+	    sa2        = sL+sR;
+	    r(n1,j,k) += ds6*(s1+sa1);
+	    r(n2,j,k) += ds6*(s2+sa2);
+	  }}
+    }
+  }
+
+
+  // clean up
+  rs.deallocate();
+  fs.deallocate();
+  fx.deallocate();
+  fy.deallocate();
+  ss.deallocate();
+  s2s.deallocate();
+
+
+
+
+  /*
+  // strand edge inviscid flux contributions (no source)
+  int jH,mH;
+  double dnr=1./deltaN;
+  Array2D<double> fs(nStrandNode,nq);
+  for (int n=0; n<nSurfNode; n++){
+    //  for (int n=0; n<0; n++){
+
+    // compute directed fluxes at all nodes along this strand
+    for (int j=0; j<nStrandNode; j++){
+      A1[0] =-ysn(n,j);
+      A1[1] = xsn(n,j);
+      sys->rhsInvFlux(1,&A1[0],&q(n,j,0),&qa(n,j,0),&fs(j,0));
+    }
+    
+    // flux derivatives at root boundary nodes
+    for (int j=0; j<nIcbNode; j++){
+      for (int k=0; k<nq; k++) f[k] = 0.;
+      for (int m=0; m<nIcb; m++)
+	for (int k=0; k<nq; k++) f[k] += icb(j,m)*fs(m,k);
+      for (int k=0; k<nq; k++) r(n,j,k) += dnr*f[k];
+    }
+
+    // flux derivatives at interior nodes
+    for (int j=nIcbNode; j<nStrandNode-nIcbNode; j++){
+      for (int k=0; k<nq; k++) f[k] = 0.;
+      for (int m=0; m<nIci; m++)
+	for (int k=0; k<nq; k++) f[k] += ici(m)*(fs(j+m+1,k)-fs(j-m-1,k));
+      for (int k=0; k<nq; k++) r(n,j,k) += dnr*f[k];
+    }
+
+    // flux derivatives at tip boundary nodes
+    jH = nIcbNode-1;
+    for (int j=nStrandNode-nIcbNode; j<nStrandNode; j++){
+      for (int k=0; k<nq; k++) f[k] = 0.;
+      mH = nIcb-1;
+      for (int m=0; m<nIcb; m++){
+	for (int k=0; k<nq; k++) f[k] -= icb(jH,mH)*fs(nStrandNode-nIcb+m,k);
+	mH--;
+      }
+      for (int k=0; k<nq; k++) r(n,j,k) += dnr*f[k];
+      jH--;
+    }}
+
+
+    // clean up
+    fs.deallocate();
+  */
+}

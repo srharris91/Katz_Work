@@ -1,0 +1,18 @@
+! input file for the strand meshing layer
+&strandGen2d
+	surfaceMesh	='0012_160.strand2d' !name of surface mesh file
+	nPartitions	= 1 !number of partitions for parallel runs
+	iwrite		= 2 !0 = write no Tecplot grid files
+			    !1 = write just Tecplot grid file of the surface
+			    !2 = write Tecplot grid file of volume and surface
+        strandDist      = 1 !1 = uniform
+			    !2 = geometric
+			    !3 = hyperbolic tangent
+	nPtsPerStrand	= 16 !set to 0 in order to use stretchRatio instead
+	nfringe		= 2
+        stretchRatio    = 1.2 !spacing ratio between adjacent points
+        wallspacing     = .00001
+        strandLength    = 1.
+        deltaSmooth     = .0001 !smoothing threshold (negative = no smoothing)
+        trimType        = 0 !0 = no strand clipping
+/

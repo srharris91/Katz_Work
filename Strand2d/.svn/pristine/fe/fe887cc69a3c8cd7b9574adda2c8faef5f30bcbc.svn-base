@@ -1,0 +1,60 @@
+#ifndef included_STRAND_defs
+#define included_STRAND_defs
+
+using namespace std;
+
+#ifndef included_NULL
+#define included_NULL
+#define NULL 0
+#endif
+
+#ifndef included_Array
+#define included_Array
+#include "Array1D.h"
+#include "Array2D.h"
+#include "Array3D.h"
+#include "Array4D.h"
+#include "Array5D.h"
+#endif
+
+#ifndef included_matmul
+#define included_matmul
+#include "matmul.h"
+#endif
+
+#ifndef included_math
+#define included_math
+#include <math.h>
+#endif
+
+#ifndef included_string
+#define included_string
+#include <string>
+#endif
+
+#ifndef included_stdio
+#define included_stdio
+#include <stdio.h>
+#endif
+
+#ifndef included_iostream
+#define included_iostream
+#include <iostream>
+#endif
+
+#ifndef included_fstream
+#define included_fstream
+#include <fstream>
+#endif
+
+#ifndef included_iomanip
+#define included_iomanip
+#include <iomanip>
+#endif
+
+#ifndef included_sstream
+#define included_sstream
+#include <sstream>
+#endif
+
+#endif

@@ -1,0 +1,193 @@
+/**
+ * \brief
+ * Class Tri2dFCSPLamBcViscousWall holds the data and specifies the operations for
+ * a dirichlet boundary condition for single-phase inviscid or
+ * viscous laminar flows.
+ *
+ * \author
+ * Aaron Katz
+ * \version
+ * 1.0
+ * \date
+ * 2013-01-02
+ */
+
+
+#ifndef included_Tri2dFCSPLamBcViscousWall
+#define included_Tri2dFCSPLamBcViscousWall
+
+#include "TRI2DFC_defs.h"
+#include "Tri2dFCSPLamBc.h"
+
+
+class Tri2dFCSPLamBcViscousWall: public Tri2dFCSPLamBc
+{
+
+ public:
+
+  /**
+   * \brief
+   * Constructor for the Tri2dFCSPLamBcViscousWall class.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2013-01-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet
+   * src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C Tri2dFCSPLamBcViscousWall
+   */
+  Tri2dFCSPLamBcViscousWall();
+
+  /**
+   * \brief
+   * Destructor for the Tri2dFCSPLamBcViscousWall class.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2013-01-02
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet
+   * src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C ~Tri2dFCSPLamBcViscousWall
+   */
+  ~Tri2dFCSPLamBcViscousWall();
+
+  /**
+   * \brief
+   * Provides BC vector for a single instance.
+   * (Neumann gradient conditions to be added soon)
+   * \param nx Outward boundary normal in (nx,ny) pair.
+   * \param q Qa vector of boundary dof.
+   * \param qa Qa vector of boundary dof.
+   * \param rb BC vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-27
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C
+   */
+  void BCVector(const double* nx,
+		const double* q,
+		const double* qa,
+		double* rb);
+
+  /**
+   * \brief
+   * Provides boundary Jacobian contribution for the boundary dof itself.
+   * \param nx Outward boundary normal in (nx,ny) pair.
+   * \param q Qa vector of boundary dof.
+   * \param qa Qa vector of boundary dof.
+   * \param M Boundary condition Jacobian matrix (row order) for self.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-30
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C
+   */
+  void BCVectorSelfJacobian(const double* nx,
+			    const double* q,
+			    const double* qa,
+			    double* M);
+
+  /**
+   * \brief
+   * Provides boundary Jacobian contribution for the interior dof.
+   * \param nx Outward boundary normal in (nx,ny) pair.
+   * \param q Qa vector of boundary dof.
+   * \param qa Qa vector of boundary dof.
+   * \param L Boundary condition Selection matrix.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-30
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C
+   */
+  void BCSelectionMatrix(const double* nx,
+			 const double* q,
+			 const double* qa,
+			 double* L);
+
+
+  /**
+   * \brief
+   * Returns surface forces.
+   * A Ouward pointing face area vector of boundary location.
+   * q Q vector.
+   * qx X-component of gradient of Q vector.
+   * qy Y-component of gradient of Q vector.
+   * qa Qa vector.
+   * qax X-component of gradient of Qa vector.
+   * qay Y-component of gradient of Qa vector.
+   * force Force vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2012-10-10
+   * \par Further Documentation:
+   * \par Source Code:
+   * \snippet src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C surfaceForces
+   */
+  void surfaceForces(const double* A,
+		     const double* q,
+		     const double* qx,
+		     const double* qy,
+		     const double* qa,
+		     const double* qax,
+		     const double* qay,
+		     double* force);
+
+  /**
+   * \brief
+   * Outputs the solution on the surface.
+   * ffile Output file stream.
+   * x X-coordinate.
+   * x Y-coordinate.
+   * q Q vector.
+   * qa Qa vector.
+   * qx X-component of gradient of Q vector.
+   * qy Y-component of gradient of Q vector.
+   * qax X-component of gradient of Qa vector.
+   * qay Y-component of gradient of Qa vector.
+   * \author
+   * Aaron Katz
+   * \version
+   * 1.0
+   * \date
+   * 2014-3-7
+   * \par Further Documentation:
+   * \snippet src/System/SystemSPLam/Tri2dFCSPLamBcViscousWall.C surfaceSolution
+   */
+  void surfaceSolution(ofstream& ffile,
+		       const double* x,
+		       const double* y,
+		       const double* q,
+		       const double* qa,
+		       const double* qx,
+		       const double* qy,
+		       const double* qax,
+		       const double* qay);
+
+
+ private:
+
+};
+#endif

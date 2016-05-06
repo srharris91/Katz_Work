@@ -1,0 +1,6 @@
+#!/bin/sh
+# can be used to change file names quickly
+ls *2dFR* | while read f
+do
+    mv $f ${f/2dFR/2dFC}
+done

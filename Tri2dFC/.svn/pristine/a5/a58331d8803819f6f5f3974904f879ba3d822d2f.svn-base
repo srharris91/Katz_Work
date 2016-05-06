@@ -1,0 +1,279 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::rhsViscous()
+{
+  /*
+  // Galerkin
+    int n1,n2,n3,nn;
+    double xa,ya,xb,yb,xc,yc,vr,fv[nq],gv[nq];
+    Array2D<double> qc(3,nq),qac(3,nqa),cx(3,2);
+    for (int n=0; n<nTri; n++){
+      n1 = tri(n,0);
+      n2 = tri(n,1);
+      n3 = tri(n,2);
+      xa = x(n1,0);
+      ya = x(n1,1);
+      xb = x(n2,0);
+      yb = x(n2,1);
+      xc = x(n3,0);
+      yc = x(n3,1);
+      vr = xa*(yb-yc)+xb*(yc-ya)+xc*(ya-yb);
+      vr = 2./vr;
+      
+      for (int i=0; i<3; i++){
+	for (int k=0; k<nq ; k++) qc (i,k) = q (n1,k);
+	for (int k=0; k<nqa; k++) qac(i,k) = qa(n1,k);
+	cx(i,0) = .5*(x(n3,1)-x(n2,1));
+	cx(i,1) = .5*(x(n2,0)-x(n3,0));
+	nn      = n1;
+	n1      = n2;
+	n2      = n3;
+	n3      = nn;
+      }
+      
+      sys->rhsVisFluxGalerkin(1,&vr,&cx(0,0),&qc(0,0),&qac(0,0),&fv[0],&gv[0]);
+      if (n1 >= nNode-nNodeBd)
+	//if (n1 == 5041 || n1 == 5065 || n1 == 5112 || n1 == 5136)
+	for (int k=0; k<nq ; k++) d(n1,k) -=(cx(0,0)*fv[k]+cx(0,1)*gv[k]);
+      if (n2 >= nNode-nNodeBd)
+	//if (n1 == 5041 || n1 == 5065 || n1 == 5112 || n1 == 5136)
+	for (int k=0; k<nq ; k++) d(n2,k) -=(cx(1,0)*fv[k]+cx(1,1)*gv[k]);
+      if (n3 >= nNode-nNodeBd)
+	//if (n1 == 5041 || n1 == 5065 || n1 == 5112 || n1 == 5136)
+	for (int k=0; k<nq ; k++) d(n3,k) -=(cx(2,0)*fv[k]+cx(2,1)*gv[k]);
+    }
+    
+    qc.deallocate();
+    qac.deallocate();
+    cx.deallocate();
+  */
+
+  if (order == 1 || order == 2){
+    int m,l1,l2,n1,n2;
+    double xri,yri,xsi,ysi,jci,dx,dy,a,b,fk,Ax,Ay;
+    Array2D<double> qxE(nne,nq),qyE(nne,nq),qaxE(nne,nqa),qayE(nne,nqa);
+    Array2D<double> f(nne,nq),g(nne,nq);
+    for (int n=0; n<nElem; n++){
+
+      // compute local gradients at the nodes in this element
+      for (int i=0; i<nne; i++){
+	xri = xr(n,i);
+	yri = yr(n,i);
+	xsi = xs(n,i);
+	ysi = ys(n,i);
+	jci = 1./jac(n,i);
+	for (int k=0; k<nq ; k++) qxE(i,k)  = 0.;
+	for (int k=0; k<nq ; k++) qyE(i,k)  = 0.;
+	for (int k=0; k<nqa; k++) qaxE(i,k) = 0.;
+	for (int k=0; k<nqa; k++) qayE(i,k) = 0.;
+	for (int j=0; j<nne; j++){
+	  dx = lr(i,j)*ysi-ls(i,j)*yri;
+	  dy =-lr(i,j)*xsi+ls(i,j)*xri;
+	  m  = elem(n,j);
+	  for (int k=0; k<nq ; k++){
+	    qxE (i,k) += q (m,k)*dx;
+	    qyE (i,k) += q (m,k)*dy;
+	  }
+	  for (int k=0; k<nqa; k++){
+	    qaxE(i,k) += qa(m,k)*dx;
+	    qayE(i,k) += qa(m,k)*dy;
+	  }}
+	for (int k=0; k<nq ; k++) qxE(i,k)  *= jci;
+	for (int k=0; k<nq ; k++) qyE(i,k)  *= jci;
+	for (int k=0; k<nqa; k++) qaxE(i,k) *= jci;
+	for (int k=0; k<nqa; k++) qayE(i,k) *= jci;
+      }
+
+      // compute viscous fluxes at the nodes in this element
+      for (int i=0; i<nne; i++){
+	m = elem(n,i);
+	sys->rhsVisFluxX(1,&q(m,0),&qa(m,0),&qxE(i,0),&qyE(i,0),
+			 &qaxE(i,0),&qayE(i,0),&f(i,0));
+	sys->rhsVisFluxY(1,&q(m,0),&qa(m,0),&qxE(i,0),&qyE(i,0),
+			 &qaxE(i,0),&qayE(i,0),&g(i,0));
+      }
+
+      // compute directed viscous fluxes at edges and distribute to nodes
+      a  = .5;
+      b  = .5;
+      for (int i=0; i<nee; i++){
+	l1 = edgeE(i,0);
+	l2 = edgeE(i,1);
+	n1 = elem(n,l1);
+	n2 = elem(n,l2);
+	Ax = areaE(n,i,0);
+	Ay = areaE(n,i,1);
+	for (int k=0; k<nq; k++){
+	  fk       = a*(Ax*f(l1,k)+Ay*g(l1,k))+b*(Ax*f(l2,k)+Ay*g(l2,k));
+	  d(n1,k) -= fk;
+	  d(n2,k) += fk;
+	  //if (n1 < nNode-nNodeBd) d(n1,k) -= fk;
+	  //if (n2 < nNode-nNodeBd) d(n2,k) += fk;
+	}}}
+
+    qxE.deallocate();
+    qyE.deallocate();
+    qaxE.deallocate();
+    qayE.deallocate();
+    f.deallocate();
+    g.deallocate();
+  }
+
+
+  else{// third-order scheme
+    int m,l1,l2,n1,n2;
+    double xri,yri,xsi,ysi,jci,dx,dy,a,b,fk,Ax,Ay;
+    Array2D<double> qxE(nne,nq),qyE(nne,nq),qaxE(nne,nqa),qayE(nne,nqa);
+    Array2D<double> f(nne,nq),g(nne,nq);
+    Array2D<double> fx(nne,nq),gx(nne,nq),fy(nne,nq),gy(nne,nq);
+    double qA[nq],qaA[nq],qxA[nq],qyA[nq],qaxA[nq],qayA[nq],fA[nq],gA[nq];
+    for (int n=0; n<nElem; n++){
+
+      // compute local gradients at the nodes in this element
+      for (int i=0; i<nne; i++){
+	xri = xr(n,i);
+	yri = yr(n,i);
+	xsi = xs(n,i);
+	ysi = ys(n,i);
+	jci = 1./jac(n,i);
+	for (int k=0; k<nq ; k++) qxE(i,k)  = 0.;
+	for (int k=0; k<nq ; k++) qyE(i,k)  = 0.;
+	for (int k=0; k<nqa; k++) qaxE(i,k) = 0.;
+	for (int k=0; k<nqa; k++) qayE(i,k) = 0.;
+	for (int j=0; j<nne; j++){
+	  dx = lr(i,j)*ysi-ls(i,j)*yri;
+	  dy =-lr(i,j)*xsi+ls(i,j)*xri;
+	  m  = elem(n,j);
+	  for (int k=0; k<nq ; k++){
+	    qxE (i,k) += q (m,k)*dx;
+	    qyE (i,k) += q (m,k)*dy;
+	  }
+	  for (int k=0; k<nqa; k++){
+	    qaxE(i,k) += qa(m,k)*dx;
+	    qayE(i,k) += qa(m,k)*dy;
+	  }}
+	for (int k=0; k<nq ; k++) qxE(i,k)  *= jci;
+	for (int k=0; k<nq ; k++) qyE(i,k)  *= jci;
+	for (int k=0; k<nqa; k++) qaxE(i,k) *= jci;
+	for (int k=0; k<nqa; k++) qayE(i,k) *= jci;
+      }
+
+      // compute viscous fluxes at the nodes in this element
+      for (int i=0; i<nne; i++){
+	m = elem(n,i);
+	sys->rhsVisFluxX(1,&q(m,0),&qa(m,0),&qxE(i,0),&qyE(i,0),
+			 &qaxE(i,0),&qayE(i,0),&f(i,0));
+	sys->rhsVisFluxY(1,&q(m,0),&qa(m,0),&qxE(i,0),&qyE(i,0),
+			 &qaxE(i,0),&qayE(i,0),&g(i,0));
+      }
+
+      // compute gradients of viscous fluxes
+      for (int i=0; i<nne; i++){
+	xri = xr(n,i);
+	yri = yr(n,i);
+	xsi = xs(n,i);
+	ysi = ys(n,i);
+	jci = 1./jac(n,i);
+	for (int k=0; k<nq; k++) fx(i,k)  = 0.;
+	for (int k=0; k<nq; k++) gx(i,k)  = 0.;
+	for (int k=0; k<nq; k++) fy(i,k) = 0.;
+	for (int k=0; k<nq; k++) gy(i,k) = 0.;
+	for (int j=0; j<nne; j++){
+	  dx = lr(i,j)*ysi-ls(i,j)*yri;
+	  dy =-lr(i,j)*xsi+ls(i,j)*xri;
+	  for (int k=0; k<nq ; k++){
+	    fx(i,k) += f(j,k)*dx;
+	    gx(i,k) += g(j,k)*dx;
+	    fy(i,k) += f(j,k)*dy;
+	    gy(i,k) += g(j,k)*dy;
+	  }}
+	for (int k=0; k<nq; k++) fx(i,k) *= jci;
+	for (int k=0; k<nq; k++) gx(i,k) *= jci;
+	for (int k=0; k<nq; k++) fy(i,k) *= jci;
+	for (int k=0; k<nq; k++) gy(i,k) *= jci;
+      }
+
+      // compute directed viscous fluxes at edges and distribute to nodes
+      a  = .5;
+      b  = .5;
+      for (int i=0; i<nee; i++){
+	l1 = edgeE(i,0);
+	l2 = edgeE(i,1);
+	n1 = elem(n,l1);
+	n2 = elem(n,l2);
+	Ax = areaE(n,i,0);
+	Ay = areaE(n,i,1);
+	for (int k=0; k<nq; k++){
+	  fk       = a*(Ax*f(l1,k)+Ay*g(l1,k))+b*(Ax*f(l2,k)+Ay*g(l2,k));
+	  d(n1,k) -= fk;
+	  d(n2,k) += fk;
+	  //if (n1 != 5041 && n1 != 5065 && n1 != 5112 && n1 != 5136)
+	  //  d(n1,k) -= fk;
+	  //if (n2 != 5041 && n2 != 5065 && n2 != 5112 && n2 != 5136)
+	  //  d(n2,k) += fk;
+	  //if (n1 < nNode-nNodeBd) d(n1,k) -= fk;
+	  //if (n2 < nNode-nNodeBd) d(n2,k) += fk;
+	}}
+
+      // try interface gradient
+      //for (int i=0; i<nee; i++){
+      for (int i=0; i<0; i++){
+	l1 = edgeE(i,0);
+	l2 = edgeE(i,1);
+	n1 = elem(n,l1);
+	n2 = elem(n,l2);
+	Ax = areaE(n,i,0);
+	Ay = areaE(n,i,1);
+	for (int k=0; k<nq ; k++) qA  [k] = .5*(q   (n1,k)+q   (n2,k));
+	for (int k=0; k<nq ; k++) qxA [k] = .5*(qxE (l1,k)+qxE (l2,k));
+	for (int k=0; k<nq ; k++) qyA [k] = .5*(qyE (l1,k)+qyE (l2,k));
+	for (int k=0; k<nqa; k++) qaA [k] = .5*(qa  (n1,k)+qa  (n2,k));
+	for (int k=0; k<nqa; k++) qaxA[k] = .5*(qaxE(l1,k)+qaxE(l2,k));
+	for (int k=0; k<nqa; k++) qayA[k] = .5*(qayE(l1,k)+qayE(l2,k));
+	sys->rhsVisFluxX(1,&qA[0],&qaA[0],&qxA[0],&qyA[0],
+			 &qaxA[0],&qayA[0],&fA[0]);
+	sys->rhsVisFluxY(1,&qA[0],&qaA[0],&qxA[0],&qyA[0],
+			 &qaxA[0],&qayA[0],&gA[0]);
+	for (int k=0; k<nq; k++){
+	  fk       = Ax*fA[k]+Ay*gA[k];
+	  d(n1,k) -= fk;
+	  d(n2,k) += fk;
+	}}
+
+
+      // flux correction terms
+      for (int i=0; i<nee; i++){
+	l1 = edgeE(i,0);
+	l2 = edgeE(i,1);
+	n1 = elem(n,l1);
+	n2 = elem(n,l2);
+	Ax = areaE(n,i,0);
+	Ay = areaE(n,i,1);
+	dx = .25*(x(n2,0)-x(n1,0));
+	dy = .25*(x(n2,1)-x(n1,1));
+	for (int k=0; k<nq; k++){
+	  fk       =(Ax*(dx*(fx(l2,k)-fx(l1,k))+dy*(fy(l2,k)-fy(l1,k)))
+		   + Ay*(dx*(gx(l2,k)-gx(l1,k))+dy*(gy(l2,k)-gy(l1,k))));
+	  d(n1,k) += fk;
+	  d(n2,k) -= fk;
+	  //if (n1 != 5041 && n1 != 5065 && n1 != 5112 && n1 != 5136)
+	  //  d(n1,k) += fk;
+	  //if (n2 != 5041 && n2 != 5065 && n2 != 5112 && n2 != 5136)
+	  //  d(n2,k) -= fk;
+	  //if (n1 < nNode-nNodeBd) d(n1,k) += fk;
+	  //if (n2 < nNode-nNodeBd) d(n2,k) -= fk;
+	}}}
+
+    qxE.deallocate();
+    qyE.deallocate();
+    qaxE.deallocate();
+    qayE.deallocate();
+    f.deallocate();
+    g.deallocate();
+    fx.deallocate();
+    gx.deallocate();
+    fy.deallocate();
+    gy.deallocate();
+  }
+}

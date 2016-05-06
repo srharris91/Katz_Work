@@ -1,0 +1,22 @@
+#include "TransportType.h"
+
+
+// [TransportType]
+TransportType::TransportType()
+{
+}
+// [TransportType]
+
+
+// [~TransportType]
+TransportType::~TransportType()
+{
+}
+// [~TransportType]
+
+
+// [getPrnT]
+void TransportType::getPrnT(double* PrnT)
+{
+}
+// [getPrnT]

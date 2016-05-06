@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+\newcommand{\enquote}[1]{``#1''}
+
+\bibitem{moss:90pc}
+Moss, J.~N., private communication, NASA Langley Research Center, Hampton, VA,
+  June 1990.
+
+\bibitem{bhutta:90jsr}
+Bhutta, B.~A. and Lewis, C.~H., \enquote{Large-Angle-of-Attack Vicous
+  Hypersonic Flows over Complex Lifting Configurations,} {\em Journal of
+  Spacecraft and Rockets\/}, Vol.~27, No.~2, 1990, pp.~194--204, also AIAA
+  Paper 89--0269, Jan. 1989.
+
+\bibitem{wirin:90cp}
+Wirin, W.~B., \enquote{Space Debris 1989,} {\em Proceedings of the
+  Thrity-Second Colloquium on the Law of Outer Space\/}, AIAA, Wahington, DC,
+  1990, pp. 184--196.
+
+\bibitem{tufte:83bk}
+Tufte, E.~R., {\em The Visual Display of Quantitative Information\/}, Graphics
+  Press, 1983.
+
+\end{thebibliography}

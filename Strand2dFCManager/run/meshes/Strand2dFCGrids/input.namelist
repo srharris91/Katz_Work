@@ -1,0 +1,15 @@
+&Strand2dFCManager
+        meshFile        ='sine2.mesh'
+	nLevels		= 1
+	meshOrders(1:3)	= 1,1,1
+	surfDist	= 1 !1=uniform, 2=Chebychev
+        strandDist      = 3 !1=uniform, 2=geometric, 3=hyp. tan.
+	perturb		= 0.
+        nStrandNode     = 64 !set to 0 to use stretchRatio instead
+        wallSpacing     = .0001
+        strandLength    = .25
+        stretchRatio    = 1.2
+        deltaSmooth     = .0001 !negative for no smoothing
+        iplotmesh       = 1 !0 = no output grid file
+                            !1 = write Paraview grid file
+/

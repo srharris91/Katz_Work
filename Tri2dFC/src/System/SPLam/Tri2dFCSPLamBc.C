@@ -1,0 +1,95 @@
+#include "Tri2dFCSPLamBc.h"
+
+
+// [Tri2dFCSPLamBc]
+Tri2dFCSPLamBc::Tri2dFCSPLamBc()
+{
+  nq = 0;
+  nqa = 0;
+  ncomp = 0;
+  ndim = 0;
+  gamma = 0.;
+  gm1 = 0.;
+  ggm1 = 0.;
+  rGas = 0.;
+  bValue = NULL;
+  state = NULL;
+  transport = NULL;
+  solution = NULL;
+}
+// [Tri2dFCSPLamBc]
+
+
+// [~Tri2dFCSPLamBc]
+Tri2dFCSPLamBc::~Tri2dFCSPLamBc()
+{
+}
+// [~Tri2dFCSPLamBc]
+
+
+// [initialize]
+void Tri2dFCSPLamBc::initialize(const int& nq0,
+				const int& nqa0,
+				const int& ndim0,
+				const int& ncomp0,
+				const double& gamma0,
+				const double& rGas0,
+				double* bValue0,
+				State* state0,
+				Transport* transport0,
+				Solution* solution0)
+{
+  nq = nq0;
+  nqa = nqa0;
+  ndim = ndim0;
+  ncomp = ncomp0;
+  gamma = gamma0;
+  rGas = rGas0;
+  gm1 = gamma-1.;
+  ggm1 = gamma/gm1;
+  if (!bValue) bValue = new double[nq];
+  for (int n=0; n<nq; n++) bValue[n] = bValue0[n];
+  state = state0;
+  transport = transport0;
+  solution = solution0;
+}
+// [initialize]
+
+
+// [surfaceForces]
+void Tri2dFCSPLamBc::surfaceForces(const double* A,
+				   const double* q,
+				   const double* qx,
+				   const double* qy,
+				   const double* qa,
+				   const double* qax,
+				   const double* qay,
+				   double* force)
+{
+  for (int n=0; n<ndim; n++) force[n] = 0.;
+}
+// [surfaceForces]
+
+
+// [surfaceSolution]
+void Tri2dFCSPLamBc::surfaceSolution(ofstream& ffile,
+				     const double* x,
+				     const double* y,
+				     const double* q,
+				     const double* qa,
+				     const double* qx,
+				     const double* qy,
+				     const double* qax,
+				     const double* qay)
+{
+}
+// [surfaceSolution]
+
+
+// [finalize]
+void Tri2dFCSPLamBc::finalize()
+{
+  if (bValue) delete [] bValue;
+  bValue = NULL;
+}
+// [finalize]

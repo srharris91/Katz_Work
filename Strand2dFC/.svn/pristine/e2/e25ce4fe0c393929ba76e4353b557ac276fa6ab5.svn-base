@@ -1,0 +1,364 @@
+#include "Tri2dFCBlockSolver.h"
+#include "solutionPoints1D.h"
+#include "lagrangePoly1D.h"
+
+
+void Tri2dFCBlockSolver::gradSetupCubic()
+{
+  // for each prismatic element, compute Jacobian terms using highest order
+  // approximation available in the global mesh
+  Array4D <double> 
+    xs(nSurfElem,nStrandElem,meshOrder+1,meshOrder+1),
+    ys(nSurfElem,nStrandElem,meshOrder+1,meshOrder+1),
+    xn(nSurfElem,nStrandElem,meshOrder+1,meshOrder+1),
+    yn(nSurfElem,nStrandElem,meshOrder+1,meshOrder+1),
+    jac(nSurfElem,nStrandElem,meshOrder+1,meshOrder+1);
+  xs.set(0.);
+  ys.set(0.);
+  xn.set(0.);
+  yn.set(0.);
+  jac.set(0.);
+
+
+  //equally spaced points in surface elements for now
+  spacing = 0;
+  Array1D<double> ss(meshOrder+1);
+  solutionPoints1D(meshOrder,
+		   spacing,
+		   &ss(0));
+
+
+  // coefficients to form Lagrange polynomials
+  bool test=true;
+  Array2D<double> lc(meshOrder+1,meshOrder+1);
+  lagrangePoly1D(test,
+		 meshOrder,
+		 &ss(0),
+		 &lc(0,0));
+
+
+  // ls(i,j) = (dl_j/ds)_i (a row is all Lagrange polynomials (derivatives)
+  // evaluated at a single mesh point i)
+  Array2D<double> ls(meshOrder+1,meshOrder+1);
+  ls.set(0.);
+  int km;
+  for (int i=0; i<meshOrder+1; i++) // ith mesh point
+    for (int j=0; j<meshOrder+1; j++) // jth Lagrange polynomial
+      for (int k=0; k<meshOrder+1; k++){
+	km       = max(0,k-1);
+	ls(i,j) +=((double)k)*pow(ss(i),km)*lc(j,k);
+      }
+
+
+  // the n-Jacobian terms are just the strand pointing vector
+  int n1,n2;
+  double nx,ny,ds;
+  for (int n=0; n<nSurfElem; n++)
+    for (int nn=0; nn<meshOrder+1; nn++){
+      n1  = strandMap(surfElem(n,nn),0            );
+      n2  = strandMap(surfElem(n,nn),nStrandNode-1);
+      nx  = x(n2,0)-x(n1,0);
+      ny  = x(n2,1)-x(n1,1);
+      ds  = 1./sqrt(nx*nx+ny*ny);
+      nx *= ds;
+      ny *= ds;
+      for (int j=0; j<nStrandElem; j++)
+	for (int jj=0; jj<meshOrder+1; jj++){
+	  xn(n,j,nn,jj) = nx;
+	  yn(n,j,nn,jj) = ny;
+	}}
+
+
+  // compute s-Jacobian terms from the surface element mapping
+  int j1;
+  for (int n=0; n<nSurfElem; n++)
+    for (int j=0; j<nStrandElem; j++)
+      for (int jj=0; jj<meshOrder+1; jj++){ //jjth row in the element
+	j1 = j*meshOrder+jj;
+	for (int nn=0; nn<meshOrder+1; nn++){ //nnth point in the jjth row
+	  for (int m=0; m<meshOrder+1; m++){ //mth Lagrange poly. in mapping
+	    n1             = strandMap(surfElem(n,m),j1);
+	    xs(n,j,nn,jj) += ls(nn,m)*x(n1,0);
+	    ys(n,j,nn,jj) += ls(nn,m)*x(n1,1);
+	  }
+	  jac(n,j,nn,jj) = xs(n,j,nn,jj)*yn(n,j,nn,jj)-
+	                   ys(n,j,nn,jj)*xn(n,j,nn,jj);
+	  /*
+	  cout << n << " " << j << " " << nn << " " << jj << "   "
+	       << jac(n,j,nn,jj) << " "
+	       << xn(n,j,nn,jj) << " "
+	       << yn(n,j,nn,jj) << " "
+	       << xs(n,j,nn,jj) << " "
+	       << ys(n,j,nn,jj) << endl;
+	  */
+	}}
+
+
+  // find Lagrange polynomial derivatives in the strand direction
+  Array3D<double> ln(nStrandElem,meshOrder+1,meshOrder+1);
+  ln.set(0.);
+  test = false;
+  for (int j=0; j<nStrandElem; j++){
+    n1 = strandMap(surfElem(0,0),j*meshOrder);
+    for (int jj=0; jj<meshOrder+1; jj++){
+      n2     = strandMap(surfElem(0,0),j*meshOrder+jj);
+      nx     = x(n2,0)-x(n1,0);
+      ny     = x(n2,1)-x(n1,1);
+      ss(jj) = sqrt(nx*nx+ny*ny);
+    }
+      
+    lagrangePoly1D(test,
+		   meshOrder,
+		   &ss(0),
+		   &lc(0,0));
+      
+    // ln(j,jj,m) = (dl_m/dn)_jj in the jth strand element
+    // (a row is all Lagrange polynomial derivatives
+    // evaluated at a single mesh point jj)
+    int km;
+    for (int jj=0; jj<meshOrder+1; jj++) // jjth mesh point
+      for (int m=0; m<meshOrder+1; m++){ // mth Lagrange polynomial
+	for (int k=0; k<meshOrder+1; k++){
+	  km          = max(0,k-1);
+	  ln(j,jj,m) +=((double)k)*pow(ss(jj),km)*lc(m,k);
+	}
+	//cout << j << " " << jj << " " << m << " " << ln(j,jj,m) << endl;
+      }
+  }
+
+
+  // cubic gradient coefficients for the viscous terms
+  int k,m;
+  double jci,xsi,ysi,xni,yni,dx,dy;
+  for (int n=0; n<nSurfElem; n++)
+    for (int j=0; j<nStrandElem; j++){
+      k = 0;
+      for (int nn=0; nn<meshOrder+1; nn++)
+	for (int jj=0; jj<meshOrder+1; jj++){
+	  jci = 1./jac(n,j,nn,jj);
+	  xsi = xs(n,j,nn,jj)*jci;
+	  ysi = ys(n,j,nn,jj)*jci;
+	  xni = xn(n,j,nn,jj)*jci;
+	  yni = yn(n,j,nn,jj)*jci;
+	  m   = 0;
+	  for (int ms=0; ms<meshOrder+1; ms++){
+	    dxg(n,j,k,m  ,0) = yni*ls(nn,ms);
+	    dxg(n,j,k,m++,1) =-xni*ls(nn,ms);
+	  }
+	  for (int mn=0; mn<meshOrder+1; mn++){
+	    dxg(n,j,k,m  ,0) =-ysi*ln(j,jj,mn);
+	    dxg(n,j,k,m++,1) = xsi*ln(j,jj,mn);
+	  }
+	  //cout << n << " " << j << " " << nn << " " << jj << "   ";
+	  //for (int mm=0; mm<2*(meshOrder+1); mm++)
+	  //cout << dxg(n,j,k,mm,1) << " ";
+	  //cout << endl;
+	  k++;
+	}}
+
+
+  // compute fully cubic FEM gradient coefficients
+  Array1D<double> sumj(nNode);
+  sumj.set(0.);
+  for (int n=0; n<nSurfElem; n++)
+    for (int j=0; j<nStrandElem; j++)
+      for (int nn=0; nn<meshOrder+1; nn++)
+	for (int jj=0; jj<meshOrder+1; jj++){
+	  k        = strandMap(surfElem(n,nn),j*meshOrder+jj);
+	  sumj(k) += jac(n,j,nn,jj);
+	}
+  for (int n=0; n<nNode; n++) sumj(n) = 1./sumj(n);
+
+  int k1,k2;
+  Array2D<double> ax(nNode,2);
+  ax.set(0.);
+  gxC.set(0.);
+  for (int n=0; n<nSurfElem; n++)
+    for (int j=0; j<nStrandElem; j++)
+      for (int nn=0; nn<meshOrder+1; nn++)
+	for (int jj=0; jj<meshOrder+1; jj++){
+	  xsi = xs(n,j,nn,jj);
+	  ysi = ys(n,j,nn,jj);
+	  xni = xn(n,j,nn,jj);
+	  yni = yn(n,j,nn,jj);
+	  n1  = strandMap(surfElem(n,nn),j*meshOrder+jj);
+	  for (int ms=0; ms<meshOrder+1; ms++){
+	    n2        = strandMap(surfElem(n,ms),j*meshOrder+jj);
+	    ax(n2,0)  = yni*ls(nn,ms);
+	    ax(n2,1)  =-xni*ls(nn,ms);
+	  }
+	  for (int mn=0; mn<meshOrder+1; mn++){
+	    n2        = strandMap(surfElem(n,nn),j*meshOrder+mn);
+	    ax(n2,0) -= ysi*ln(j,jj,mn);
+	    ax(n2,1) += xsi*ln(j,jj,mn);
+	  }
+	  for(int k=psp2(n1); k<psp2(n1+1); k++){
+	    gxC(k,0) += ax(psp1(k),0);
+	    gxC(k,1) += ax(psp1(k),1);
+	  }
+	  for (int ms=0; ms<meshOrder+1; ms++){
+	    n2        = strandMap(surfElem(n,ms),j*meshOrder+jj);
+	    ax(n2,0)  = 0.;
+	    ax(n2,1)  = 0.;
+	  }
+	  for (int mn=0; mn<meshOrder+1; mn++){
+	    n2        = strandMap(surfElem(n,nn),j*meshOrder+mn);
+	    ax(n2,0)  = 0.;
+	    ax(n2,1)  = 0.;
+	  }}
+
+  for (int n=0; n<nNode; n++){
+    //cout << n << " " << endl;
+    for (int i=psp2(n); i<psp2(n+1); i++){
+      gxC(i,0) *= sumj(n);
+      gxC(i,1) *= sumj(n);
+      //cout << psp1(i) << " " << gxC(i,0) << " " << gxC(i,1) << endl;
+    }
+    //cout << "\n" << endl;
+  }
+  //exit(0);
+
+
+  // compute fully cubic FEM Hessian coefficients
+  Array2D<double> axx(nNode,3);
+  Array5D<double> px(meshOrder+1,meshOrder+1,meshOrder+1,meshOrder+1,2);
+  axx.set(0.);
+  gxx.set(0.);
+  for (int n=0; n<nSurfElem; n++)
+    for (int j=0; j<nStrandElem; j++){
+
+      // first derivative coefficients
+      px.set(0.);
+      for (int nn=0; nn<meshOrder+1; nn++)
+	for (int jj=0; jj<meshOrder+1; jj++){
+
+	  // Jacobian of the node nn,jj within element n,j
+	  jci = 1./jac(n,j,nn,jj);
+	  xsi = xs(n,j,nn,jj)*jci;
+	  ysi = ys(n,j,nn,jj)*jci;
+	  xni = xn(n,j,nn,jj)*jci;
+	  yni = yn(n,j,nn,jj)*jci;
+	  
+	  // x/y first derivative coefficients for the node nn,jj
+	  for (int ms=0; ms<meshOrder+1; ms++){
+	    px(nn,jj,ms,jj,0)  = yni*ls(nn,ms);
+	    px(nn,jj,ms,jj,1)  =-xni*ls(nn,ms);
+	  }
+	  for (int mn=0; mn<meshOrder+1; mn++){
+	    px(nn,jj,nn,mn,0) -= ysi*ln(j,jj,mn);
+	    px(nn,jj,nn,mn,1) += xsi*ln(j,jj,mn);
+	  }}
+  
+      // second derivative coefficients
+      for (int nn=0; nn<meshOrder+1; nn++)
+	for (int jj=0; jj<meshOrder+1; jj++){
+
+	  // Jacobian of the node nn,jj within element n,j (second pass)
+	  xsi = xs(n,j,nn,jj);
+	  ysi = ys(n,j,nn,jj);
+	  xni = xn(n,j,nn,jj);
+	  yni = yn(n,j,nn,jj);
+	  n1  = strandMap(surfElem(n,nn),j*meshOrder+jj);
+
+	  // second derivative contributions from surface direction
+	  for (int ms=0; ms<meshOrder+1; ms++){
+	    dx = yni*ls(nn,ms);
+	    dy =-xni*ls(nn,ms);
+	    for (int mms=0; mms<meshOrder+1; mms++){
+	      n2         = strandMap(surfElem(n,mms),j*meshOrder+jj);
+	      axx(n2,0) += px(ms,jj,mms,jj,0)*dx;
+	      axx(n2,1) += px(ms,jj,mms,jj,0)*dy;
+	      //axx(n2,2) += px(ms,jj,mms,jj,1)*dy;
+	    }
+	    for (int mmn=0; mmn<meshOrder+1; mmn++){
+	      n2         = strandMap(surfElem(n,ms),j*meshOrder+mmn);
+	      //axx(n2,0) += px(ms,jj,ms,mmn,0)*dx;
+	      axx(n2,1) += px(ms,jj,ms,mmn,0)*dy;
+	      //axx(n2,2) += px(ms,jj,ms,mmn,1)*dy;
+	    }}
+
+	  // second derivative contributions from strand direction
+	  for (int mn=0; mn<meshOrder+1; mn++){
+	    dx =-ysi*ln(j,jj,mn);
+	    dy = xsi*ln(j,jj,mn);
+	    for (int mms=0; mms<meshOrder+1; mms++){
+	      n2         = strandMap(surfElem(n,mms),j*meshOrder+mn);
+	      //axx(n2,0) += px(nn,mn,mms,mn,0)*dx;
+	      axx(n2,1) += px(nn,mn,mms,mn,0)*dy;
+	      //axx(n2,2) += px(nn,mn,mms,mn,1)*dy;
+	    }
+	    for (int mmn=0; mmn<meshOrder+1; mmn++){
+	      n2         = strandMap(surfElem(n,nn),j*meshOrder+mmn);
+	      //axx(n2,0) += px(nn,mn,nn,mmn,0)*dx;
+	      axx(n2,1) += px(nn,mn,nn,mmn,0)*dy;
+	      axx(n2,2) += px(nn,mn,nn,mmn,1)*dy;
+	    }}
+
+	  // store coefficients for node nn,jj (n1)
+	  for(int k=pspH2(n1); k<pspH2(n1+1); k++){
+	    gxx(k,0) += axx(pspH1(k),0);
+	    gxx(k,1) += axx(pspH1(k),1);
+	    gxx(k,2) += axx(pspH1(k),2);
+	  }
+
+	  for (int ms=0; ms<meshOrder+1; ms++)
+	    for (int mn=0; mn<meshOrder+1; mn++){
+	      n2        = strandMap(surfElem(n,ms),j*meshOrder+mn);
+	      axx(n2,0) = 0.;
+	      axx(n2,1) = 0.;
+	      axx(n2,2) = 0.;
+	    }}}
+
+  double sumxx,sumxy,sumyy,maxxx,maxxy,maxyy;
+  maxxx = 0.;
+  maxxy = 0.;
+  maxyy = 0.;
+  for (int n=0; n<nNode; n++){
+    sumxx = 0.;
+    sumxy = 0.;
+    sumyy = 0.;
+    for (int i=pspH2(n); i<pspH2(n+1); i++){
+      gxx(i,0) *= sumj(n);
+      gxx(i,1) *= sumj(n);
+      gxx(i,2) *= sumj(n);
+      sumxx    += gxx(i,0);
+      sumxy    += gxx(i,1);
+      sumyy    += gxx(i,2);
+    }
+    maxxx = max(fabs(sumxx),maxxx);
+    maxxy = max(fabs(sumxy),maxxy);
+    maxyy = max(fabs(sumyy),maxyy);
+  }
+  cout << "\nMax. value of 2nd deriv. coefficient sums: "
+       << maxxx << " "
+       << maxxy << " "
+       << maxyy << endl;
+
+  /*
+  for (int n=0; n<nNode; n++){
+    cout << n << endl;
+    for (int i=pspH2(n); i<pspH2(n+1); i++)
+      cout << pspH1(i)
+	   << " " << gxx(i,0)
+	   << " " << gxx(i,1)
+	   << " " << gxx(i,2) << endl;
+    cout << "\n";
+  }
+  */
+
+
+  // deallocate work arrays
+  xs.deallocate();
+  ys.deallocate();
+  xn.deallocate();
+  yn.deallocate();
+  jac.deallocate();
+  ss.deallocate();
+  lc.deallocate();
+  ls.deallocate();
+  ln.deallocate();
+  sumj.deallocate();
+  ax.deallocate();
+  axx.deallocate();
+  px.deallocate();
+}

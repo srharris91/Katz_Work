@@ -1,0 +1,12 @@
+Physics is a set of routines to perform common physics-based tasks
+often needed by CFD codes, such as handling of equations of state
+and computation of transport properties (viscosity, conduction, etc.)
+
+To compile the Physics library:
+        1. Set the proper paths and compiler options in Make.rules
+                PHYSICS = current path to Physics
+                PHYSICSLIB = desired name of Physics library
+        2. Type "make library".
+
+To remove the library and any object files:
+        1. Type "make clean".

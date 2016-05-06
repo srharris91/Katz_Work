@@ -1,0 +1,26 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::connectivity()
+{
+  // form local grid of triangles, nodes, and boundary edges
+  localGrid();
+
+
+  // extract edges from the local grid
+  edgeExtract();
+
+
+  // put boundary nodes at the end, and update all data structures
+  reorderNodes();
+
+
+  // form local edges within each element for viscous terms if order = 3
+  // (lower orders will use a Galerkin viscous discretization)
+  if (order == 3) edgeExtractVis();
+
+
+  // form FEM gradient stencil if order = 3
+  // (lower orders will use Green-Gauss)
+  if (order == 3) gradStencil();
+}

@@ -1,0 +1,20 @@
+//
+// File:        STRANDGEN_defs.h
+// Package:     STRANDGEN
+//              Parallel Infrastructure for Cartesian & Strand Solvers
+// Release:     $Name:  $
+// Revision:    $Revision:  $
+// Modified:    $Date:  $
+// Description: Global defns used in STRANDGEN 
+//              
+
+#ifndef included_STRANDGEN_defs
+#define included_STRANDGEN_defs
+
+#define NULL 0
+
+using namespace std;
+#include <string>
+#include <vector>
+
+#endif

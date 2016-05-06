@@ -1,0 +1,122 @@
+% This file was created with JabRef 2.10b2.
+% Encoding: UTF-8
+
+
+@Article{,
+  Title                    = {Behavior of Linear Reconstruction Techniques
+on Unstructured Meshes},
+  Author                   = {Michael Aftosmis and Datta Gaitonde and T. Scan Tavares},
+  Journal                  = {AIAA},
+  Year                     = {1995},
+
+  Abstract                 = {This paper presents an assessment of a variety of reconstruction schemes on meshes with both quadrilateral
+and triangular tessellations. The investigations measure the order of accuracy, absolute error, and convergence
+properties associated with each method. Linear reconstruction approaches using both Green-Gauss and least-
+squares gradient estimation are evaluated against a structured MUSCL scheme wherever possible. In addition to
+examining the influence of polygon degree and reconstruction strategy, results with three limiters are examined and
+compared against unlimited results when feasible. The methods are applied on quadrilateral, right triangular, and
+equilateral triangular elements to facilitate an examination of the scheme's behavior on a variety of element shapes.
+The numerical test cases include well-known internal and external inviscid examples and also a supersonic vortex
+problem for which there exists a closed-form solution to the two-dimensional compressible Euler equations. Such
+investigations indicate that the least-squares gradient estimation provides significantly more reliable results on poor
+quality meshes. Furthermore, limiting only the face normal component of the gradient can significantly increase
+both accuracy and convergence while still preserving the integral cell average and maintaining monoticity. The
+first-order method performs poorly on stretched triangular meshes, and analysis shows that such meshes result
+in poorly aligned left and right states for the Riemann problem. The higher average valence of a vertex in the
+triangular tesselations does not appear to enhance the wave propagation, accuracy, or convergence properties of
+the method. Typically, quadrilateral elements provide superior or equivalent discrete solutions with approximately
+50% fewer edges in the domain two-dimensional. However, on very poor quality meshes, the triangular elements
+routinely yield superior accuracy as a result of the trapezoidal quadrature of the Galerkin portion of the numerical
+flux function.},
+  Owner                    = {shaunharris},
+  Timestamp                = {2015.05.12}
+}
+
+@Article{,
+  Title                    = {Numerical Aspects of Computing Viscous High
+Reynolds Number Flows on Unstructured Meshes},
+  Author                   = {Timothy J. Barth},
+  Journal                  = {American Institute of Aeronautics and Astronautics},
+  Year                     = {1991},
+
+  Abstract                 = {Various numerical and practical aspects associated with the solution of the Navier-Stokes equations on
+triangular meshes are addressed. We depart from the standard “element” data structure used in finite elements
+which describes a mesh element-wise from knowledge of the vertices of each element. Instead, we use an “edge”
+data structure which describes a mesh edge-wise given the vertices of each edge and neigboring cell information.
+In developing algorithms for the Navier-Stokes equations, the use of the edge data structure necessitates the
+rederivation of many of the discrete operators appearing in the Navier-Stokes equations. In this paper, edge for-
+mulas for the Galerkin and finite-volume discretization of gradient, divergence, Hessian and Laplacian operators
+are derived. The Galerkin discretieation (with linear elements) of the Laplacian operator reveals that a discrete
+maximum principle is guaranteed in two space dimensions if and only if the mesh is a Delaunay triangulation.
+Sufficient conditions for a discrete maximum principle in three space dimensions are developed and found to be
+in agreement with standard finite element theory. Other issues which are equally important in the solution of
+the Navier-Stokes equations are addressed. Some issues concerning the generation of highly stretched triangular
+meshes are reviewed. A triangulation method which minimizes the maximum angle in triangles is shown t o have
+desirable properties for highly stretched meshes. Other practical aspects of computing Navier-Stokes flow includ-
+ing the modeling of turbulence on unstructured meshes are discussed and a new turbulence modeling strategy
+is presented. The turbulence modeling capability is then coupled with au implicit solution strategy. Numerical
+results for high Reynolds number flow about single and multi-element airfoils are presented.},
+  Owner                    = {shaunharris},
+  Timestamp                = {2015.05.12}
+}
+
+@Article{,
+  Title                    = {An Unstructured Mesh Newton Solver
+for Compressible Fluid Flow
+and Its Parallel Implementation},
+  Author                   = {Timothy J. Barth and Timothy J. Barth and Samuel W. Linton},
+  Journal                  = {American Institute of Aeronautics and Astronautics},
+  Year                     = {1995},
+
+  Owner                    = {shaunharris},
+  Timestamp                = {2015.05.12}
+}
+
+@TechReport{,
+  Title                    = {Accuracy of Gradient Reconstruction on Grids with High Aspect Ratio},
+  Author                   = {Boris Diskin and James Thomas},
+  Institution              = {National Institute of Aerospace},
+  Year                     = {2008},
+  Month                    = {December},
+
+  Abstract                 = {Gradient approximation methods commonly used in unstructured-grid finite-volume schemes
+intended for solutions of high Reynolds number flow equations are studied comprehensively. The
+accuracy of gradients within cells and within faces is evaluated systematically for both node-centered
+and cell-centered formulations. Computational and analytical evaluations are made on a series of
+high-aspect-ratio grids with different primal elements, including quadrilateral, triangular, and mixed-
+element grids, with and without random perturbations to the mesh. Both rectangular and cylindrical
+geometries are considered; the latter serves to study the effects of geometric curvature. The study
+shows that the accuracy of gradient reconstruction on high-aspect-ratio grids is determined by a
+combination of the grid and the solution. The contributors to the error are identified and approaches
+to reduce errors are given, including the addition of higher-order terms in the direction of larger
+mesh spacing. A parameter Γ characterizing accuracy on curved high-aspect-ratio grids is discussed
+and an approximate-mapped-least-square method using a commonly-available distance function is
+presented; the method provides accurate gradient reconstruction on general grids. The study is
+intended to be a reference guide accompanying the construction of accurate and efficient methods
+for high Reynolds number applications.},
+  Keywords                 = {unstructured grids, finite-volume discretizations, accuracy analysis},
+  Owner                    = {shaunharris},
+  Timestamp                = {2015.05.12}
+}
+
+@Article{,
+  Title                    = {Finite Volume Discretization Aspects for Viscous Flows
+on Mixed Unstructured Grids},
+  Author                   = {Andreas Haselbacher and James J. McGuirk and Gary J. Page},
+  Journal                  = {AIAA},
+  Year                     = {1999},
+
+  Owner                    = {shaunharris},
+  Timestamp                = {2015.05.12}
+}
+
+@Article{,
+  Title                    = {On the Computation of Compressible Turbulent Flows on Unstructured Grids},
+  Author                   = {Hong Luo, Dmitri Sharov,, Joseph D. Baum, and Rainald L\"ohner},
+  Journal                  = {American Institute of Aeronautics and Astronautics (AIAA)},
+  Year                     = {2000},
+
+  Owner                    = {shaunharris},
+  Timestamp                = {2015.05.12}
+}
+

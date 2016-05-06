@@ -1,0 +1,173 @@
+#include "Tri2dFCBlockSolver.h"
+
+
+void Tri2dFCBlockSolver::gradient(const int& npts,
+				  const int& nqp,
+				  const double* p,
+				  double* px,
+				  double* py)
+{
+  //if       (order == 1 && viscous == 0){ //zero gradients
+  if       (order == 1){ //zero gradients
+    for (int n=0; n<npts*nqp; n++) px[n] = 0.;
+    for (int n=0; n<npts*nqp; n++) py[n] = 0.;
+  }
+
+  //else if ((order == 1 && viscous != 0) ||
+  //	   (order == 2 && viscous == 0)){ //Green-Gauss gradients
+  else if (order == 2){ //Green-Gauss gradients
+    for (int n=0; n<npts*nqp; n++) px[n] = 0.;
+    for (int n=0; n<npts*nqp; n++) py[n] = 0.;
+    int n1,n2,k1,k2,m=0;
+    double Ax,Ay,a,third=1./3.;
+    for (int n=0; n<nEdge; n++){ //interior edges
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = area(n,0);
+      Ay     = area(n,1);
+      k1     = n1*nqp;
+      k2     = n2*nqp;
+      for (int k=0; k<nqp; k++){
+	a         = p[k1+k]+p[k2+k];
+	px[k1+k] += Ax*a;
+	py[k1+k] += Ay*a;
+	px[k2+k] -= Ax*a;
+	py[k2+k] -= Ay*a;
+      }}
+    for (int n=nEdge-nEdgeBd; n<nEdge; n++){ //boundary edges
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = areaBd(m  ,0);
+      Ay     = areaBd(m++,1);
+      k1     = n1*nqp;
+      k2     = n2*nqp;
+      for (int k=0; k<nqp; k++){
+	a         =(5.*p[k1+k]+p[k2+k])*third;
+	px[k1+k] += Ax*a;
+	py[k1+k] += Ay*a;
+	a         =(p[k1+k]+5.*p[k2+k])*third;
+	px[k2+k] += Ax*a;
+	py[k2+k] += Ay*a;
+      }}
+    for (int n=0; n<nNode; n++){ //normalize gradients
+      a  = .5/v(n);
+      k1 = n*nqp;
+      for (int k=0; k<nqp; k++){
+	px[k1+k] *= a;
+	py[k1+k] *= a;
+      }}
+  }
+
+
+  else{ //FEM gradients
+    int k1;
+    double xri,yri,xsi,ysi,dx,dy,ax[nqp],ay[nqp],a;
+    Array1D<double> sumj(nNode);
+    sumj.set(0.);
+    for (int n=0; n<npts*nqp; n++) px[n] = 0.;
+    for (int n=0; n<npts*nqp; n++) py[n] = 0.;
+    for (int n=0; n<nElem; n++)
+      for (int i=0; i<nne; i++){
+	xri = xr(n,i);
+	yri = yr(n,i);
+	xsi = xs(n,i);
+	ysi = ys(n,i);
+	for (int k=0; k<nqp; k++) ax[k] = 0.;
+	for (int k=0; k<nqp; k++) ay[k] = 0.;
+	for (int j=0; j<nne; j++){
+	  dx = lr(i,j)*ysi-ls(i,j)*yri;
+	  dy =-lr(i,j)*xsi+ls(i,j)*xri;
+	  k1 = elem(n,j)*nqp;
+	  for (int k=0; k<nqp; k++){
+	    ax[k] += p[k1+k]*dx;
+	    ay[k] += p[k1+k]*dy;
+	  }}
+	k1 = elem(n,i)*nqp;
+	for (int k=0; k<nqp; k++) px[k1+k] += ax[k];
+	for (int k=0; k<nqp; k++) py[k1+k] += ay[k];
+	sumj(elem(n,i)) += jac(n,i);
+      }
+    for (int n=0; n<nNode; n++){ //normalize gradients
+      a  = 1./sumj(n);
+      k1 = n*nqp;
+      for (int k=0; k<nqp; k++){
+	px[k1+k] *= a;
+	py[k1+k] *= a;
+      }}
+    sumj.deallocate();
+
+
+    /*
+    int n=5065;
+    a  = 1./sumj(n);
+    k1 = n*nqp;
+    for (int k=0; k<nqp; k++){
+      px[k1+k] = 0.;
+      py[k1+k] = 0.;
+    }
+    */
+
+    /*
+    double* pxT = new double[npts*nqp];
+    double* pyT = new double[npts*nqp];
+    for (int n=0; n<npts*nqp; n++) pxT[n] = 0.;
+    for (int n=0; n<npts*nqp; n++) pyT[n] = 0.;
+    int n1,n2,k2,m=0;
+    double Ax,Ay,third=1./3.;
+    for (int n=0; n<nEdge; n++){ //interior edges
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = area(n,0);
+      Ay     = area(n,1);
+      k1     = n1*nqp;
+      k2     = n2*nqp;
+      for (int k=0; k<nqp; k++){
+	a         = p[k1+k]+p[k2+k];
+	pxT[k1+k] += Ax*a;
+	pyT[k1+k] += Ay*a;
+	pxT[k2+k] -= Ax*a;
+	pyT[k2+k] -= Ay*a;
+      }}
+    for (int n=nEdge-nEdgeBd; n<nEdge; n++){ //boundary edges
+      n1     = edge(n,0);
+      n2     = edge(n,1);
+      Ax     = areaBd(m  ,0);
+      Ay     = areaBd(m++,1);
+      k1     = n1*nqp;
+      k2     = n2*nqp;
+      for (int k=0; k<nqp; k++){
+	a         =(5.*p[k1+k]+p[k2+k])*third;
+	pxT[k1+k] += Ax*a;
+	pyT[k1+k] += Ay*a;
+	a         =(p[k1+k]+5.*p[k2+k])*third;
+	pxT[k2+k] += Ax*a;
+	pyT[k2+k] += Ay*a;
+      }}
+    for (int n=0; n<nNode; n++){ //normalize gradients
+      a  = .5/v(n);
+      k1 = n*nqp;
+      for (int k=0; k<nqp; k++){
+	pxT[k1+k] *= a;
+	pyT[k1+k] *= a;
+      }}
+    for (int n=nNode-nNodeBd; n<nNode; n++){ //copy boundary gradients
+      k1 = n*nqp;
+      for (int k=0; k<nqp; k++){
+	px[k1+k] = pxT[k1+k];
+	py[k1+k] = pyT[k1+k];
+      }}
+
+    int n=5065;
+    k1 = n*nqp;
+    for (int k=0; k<nqp; k++){
+      //px[k1+k] = pxT[k1+k];
+      //py[k1+k] = pyT[k1+k];
+    }
+
+    delete [] pxT;
+    delete [] pyT;
+    */
+
+
+  }
+}

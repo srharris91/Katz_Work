@@ -1,0 +1,46 @@
+Author: Shaun Harris
+Date: Sept. 4, 2015
+quick setup for using git and setting up
+info taken from the website shown here: https://www.atlassian.com/git/tutorials/setting-up-a-repository
+
+
+
+
+
+To create a blank repository on a cluster (or shared computer)
+cd to common directory
+to create the common repository execute command: git init --bare repositoryname.git
+
+now to get this repository (or any other older repository) onto your local machine, follow the 2 commands below:
+cd to desired location
+git clone A#@login.rc.usu.edu:/labs/katz/repo/repositoryname.git
+
+to set your personalized settings (each time you make a change to a file and commit it to the central repository) follow the commands here:
+to list all of your current settings: git config -l
+set your user name to be used by all commits: git config --global user.name your_specific_username
+set your email: git config --global user.email your.email@aggiemail.usu.edu
+set your git editor for commands like git commit for all users: sudo git config --system core.editor your_favorite_editor
+open global configuration file for editing (file saved in location ~/.gitconfig): git config --global --edit
+to set the type of push.default to only push the specified branch you are working on setting use the following command: git config --global push.default simple
+to help with a linear pull default (put my changes over the top of what everybody else changed when I pull) set this:  git config --global branch.autosetuprebase always
+
+
+
+Basic flow for editing and commiting changes for files.  This is important to understand!!!!!
+First: edit your files in the working directory (possibly after you create a new file).  
+Second: When you are ready to save a copy of the current state of the project (once it runs correctly without errors) you stage changes with the command: git add
+Note: you can use the commands and variations with git add like the following
+    To stage all changes in a file for the next commit execute the command: git add your_file
+    To stage all changes in a directory for the next commit execute the command: git add your_directory
+    To begin an interactive session to choose which parts to add to the next commit execute the command: git add -p
+        (note: y will stage the chunk, n to ignore the chunk, s to split it into smaller chuncks, and e to manually edit the chunck, and q to exit)
+Third: once the updates to the particular file are included in the commit as desired, execute the command: git commit
+    (note: this will save the changes you have made to the repository)
+Fourth: optionally, you can execute this command to see the state of the working directory and the staging area: git status
+    (note: you can also use the following command to use a graphical interface: gitk)
+Fifth: Now that your local repository works and everything is updated, now we can push it to the central repository on the cluster with the following command: git push
+Sixth: After someone else has edited the cluster repository you can do the following command to fetch the changes, and merge the changes with your current version: get pull
+
+
+
+If you want further ability (such as using separate branches and things) see the website listed at the top of this page.

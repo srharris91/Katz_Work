@@ -1,0 +1,80 @@
+#include "StrandBlockSolver.h"
+#include "nbtrluC.h"
+#include "nbtrbkC.h"
+
+
+void StrandBlockSolver::solve(const int& step,
+			      const int& pseudoStep,
+			      const int& linearStep,
+			      const int& mglevel,
+			      const int& mode)
+{
+  // save the solution at the beginning of the pseudo step on the fine grid
+  // for measuring RMS convergence
+  if (mglevel == 0 && linearStep == 0){
+    if (pseudoStep > 0){
+      for (int k=0; k<nq; k++) rms(k) = 0.;
+      for (int n=0; n<nFaces+nBedges; n++)
+	for (int j=0; j<nPstr+2; j++)
+	  for (int k=0; k<nq; k++)
+	    rms(k) +=((q(k,j,n)-q0(k,j,n))*(q(k,j,n)-q0(k,j,n)));
+      for (int k=0; k<nq; k++) rms(k) /=(rmsNorm(k)*rmsNorm(k));
+    }
+    for (int n=0; n<nFaces+nBedges; n++)
+      for (int j=0; j<nPstr+2; j++)
+	for (int k=0; k<nq; k++) q0(k,j,n) = q(k,j,n);
+  }
+
+
+  // determine extents of forward or backward sweep
+  int n1,n2,nn,m,i,l,jj=nPstr+1,npts=nPstr+2;
+  Array3D<double> de(nq,nq,npts);
+
+  //int sweep;
+  //if (pseudoStep%2 == 0) sweep = 0;
+  //else sweep = 1;
+
+  for (int sweep=0; sweep<2; sweep++){
+    if      (sweep == 0){
+      n1 = 0;
+      n2 = nFaces+nBedges;
+      nn = 1;
+    }
+    else{
+      n1 = nFaces+nBedges-2;
+      n2 = 0;
+      nn =-1;
+    }
+
+    // compute RHS
+    computeRHS(step,
+	       pseudoStep,
+	       linearStep,
+	       sweep,
+	       mglevel,
+	       mode);
+
+    for (int n=n1; n!=n2; n+=nn){
+      // invert tri-diagonal matrix for this strand stack and update
+      for (int j=0; j<nPstr+2; j++)
+	nbtrluC(0,jj,j,nq,&dm(0,0,j,n),&dd(0,0,j,n),&dp(0,0,j,n),
+		&r(0,0,n),&de(0,0,0));
+      nbtrbkC(0,jj,nq,&r(0,0,n),&de(0,0,0));
+      for (int j=0; j<fClip(n)+2; j++)
+	for (int k=0; k<nq; k++) q(k,j,n) -= r(k,j,n);
+    }
+
+    // compute additional variables and reset flags
+    npts =(nFaces+nBedges)*(nPstr+2);
+    sys->stepQAdd(npts,
+		  &q(0,0,0),
+		  &qa(0,0,0));
+    nodalQFlag  = 0;
+    nodalQaFlag = 0;
+    gradQFlag   = 0;
+    gradQaFlag  = 0;
+    limFlag     = 0;
+  }
+
+  de.deallocate();
+}

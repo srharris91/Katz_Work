@@ -1,0 +1,59 @@
+###############################################################################
+#                                                                             #
+#                    Top level Make.rules for codes                           #
+#                                                                             #
+###############################################################################
+
+
+#-----------BEGIN CONFIGURE SECTION--------------------------------------------
+
+STRANDGEN	= /Users/akatz/Work/codes/StrandGen2d
+STRANDGENLIB 	= StrandGen2d
+SOLVER		= /Users/akatz/Work/codes/Strand2d
+SOLVERLIB	= Strand2d
+INCLUDE        	= -I$(STRANDGEN)/include -I$(SOLVER)/src/Include
+EXEC		= StrandGen2d.exec
+
+# compilers and flags
+LINKER	    	= g++
+CXX		= g++
+CXXFLAGS	= -g -O
+CPP		= cpp
+F90 		= gfortran
+F90FLAGS	= -cpp -O4 -fdefault-real-8 -fconvert=big-endian -fPIC
+
+#HPC cluster users
+#LDFLAGS		= -L/usr/lib64/gcc/x86_64-linux-gnu/4.4.5 -lgfortran -lstdc++
+
+#Ubuntu users
+#LDFLAGS		= -L/usr/lib/gcc/x86_64-linux-gnu/4.6.1 -lgfortran -lstdc++
+
+#Mac users
+LDFLAGS		= -L/usr/local/gfortran/lib -lgfortran -lstdc++
+
+
+#-----------END CONFIGURE SECTION----------------------------------------------
+
+# suffix rules
+
+.SUFFIXES:	$(SUFFIXES) .F90 .o .f .F .f90 .C .h
+
+.F90.o:
+	awk '{ gsub ("//", "_DB_") }1' $*.F90 > $*.tmp1
+	$(CPP) $*.tmp1 $*.tmp2
+	awk '{ gsub ("_DB_", "//") }1' $*.tmp2 > $*.tmp1
+	awk '{ gsub ("LB", "\n") }1' $*.tmp1 > $*.ftn
+	$(F90) $(F90FLAGS) -ffree-form $(INCLUDE) -c -o $*.o $*.ftn
+	rm -f $*.tmp1 $*.tmp2 $*.ftn
+
+.f90.o:
+	$(F90) $(F90FLAGS) -ffree-form $(INCLUDE) -c -o $*.o $*.f90
+
+.F.o:
+	$(F90) $(F90FLAGS) $(INCLUDE) -c -o $*.o $*.F
+
+.f.o:
+	$(F90) $(F90FLAGS) $(INCLUDE) -c -o $*.o $*.f
+
+.C.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -c -o $*.o $*.C

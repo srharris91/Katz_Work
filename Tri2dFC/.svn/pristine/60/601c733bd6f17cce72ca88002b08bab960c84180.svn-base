@@ -1,0 +1,33 @@
+#include "Tri2dFCSystem.h"
+
+
+// [Tri2dFCSystem]
+Tri2dFCSystem::Tri2dFCSystem()
+{
+  iPrint = 0;
+  iTest = 0;
+  iDebug = 0;
+  iSolnFile = 0;
+  iResdFile = 0;
+  iErrFile = 0;
+  nq = 0;
+  nqa = 0;
+  ndim = 0;
+  ncomp = 0;
+  isolution = 0;
+  nBpatches = 0;
+  inviscid = 0;
+  viscous = 0;
+  source = 0;
+  sourceMMS = 0;
+  dissipation = 0;
+
+}
+// [Tri2dFCSystem]
+
+
+// [~Tri2dFCSystem]
+Tri2dFCSystem::~Tri2dFCSystem()
+{
+}
+// [~Tri2dFCSystem]

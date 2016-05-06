@@ -1,0 +1,111 @@
+! input file for the ARCCFD code dualImp-prism3d-NsLam3d
+&time
+        iConvFile       = 1
+        restartStep     = 0
+        nRestart        = 0
+        nOutput         = 1
+        nSteps		= 0
+	nPseudoSteps	= 0
+	nPseudoSteps0	= 200
+	nLinearSteps	= 12
+	method		= 4 !1=pointJ, 2=pointGS, 3=lineJ, 4=lineGS
+	dtUnsteady	= 0
+	cflLinear	= 1.E14
+	cfl		= 10000.
+	vnn		= 10000.
+	convLimit	= 1.e-4
+	relax		= 0.
+	nLevels		= 1
+	mgCycle		= 2 !1=v-cycle, 2=w-cycle
+/
+Description of time layer inputs:
+iConvFile - 1 = print convergence history file,
+	    0 = do not pring convergence history file.
+restartStep - step to restart from for unsteady cases (not working yet).
+nRestart - frequency to write restart files (not working yet).
+nOutput - frequency to write output files.
+nSteps - number of unsteady time steps (0 for steady). Unsteady mode
+	 close to working, but not yet verified.
+nPseudoSteps - number of pseudo time steps to try and converge each unsteady
+	       physical time step
+nPseudoSteps0 - nPsuedoSteps at the first unsteady time step, or for steady
+	        cases
+nLinearSteps - number of sweeps of the linear solver at each pseudo time step
+method = mode of linear solver (currently lineGS is only option)
+dtUnsteady = unsteady time step
+cflLinear = CFL for linear time step
+cfl - CFL for psuedo time steps
+vnn - von Neumann number for pseudo time steps
+convLimit - convergence limit for each pseudo time step
+relax - relaxation parameter for multigrid (not working yet)
+nLevels - number of multigrid levels (not working yet)
+mgCycle - type of multigrid cycle
+
+
+&geom
+        iSolnFile       = 1
+        iResdFile       = 1
+        iErrFile        = 1
+        iSurfFile       = 1
+	gradient	= 2 !0=constant, 1=ls, 2=green
+	nodeVal		= 3 !1=volume, 2=ls, 3=mapped
+	coarseDis	= 0.5
+	perturb		= 0 !0=no perturb, 1=strand pert., 2=full pert.
+/
+Description of geom layer inputs:
+iSolnFile - 1=write solution field file, 0=don't write solution field file
+iResdFile - 1=write residual field file, 0=don't write residual field file
+iErrFile - 1=write error field file, 0=don't write error field file
+	    (exact or MMS runs only)
+iSurfFile - 1=write surface field file, 0=don't write surface field file
+gradient - method of gradient computation:
+	 0 = constant gradients (1st order accurate)
+	 1 = direct cell LS method
+	 2 = hybrid nodal Green-Gauss method
+nodeVal - method of computing nodal values for use with gradient=2 and/or
+	  viscous face gradient
+	1 = volume weighting
+	2 = least squares
+	3 = mapped projection method (for high curvature)
+coarseDis - coefficient of diffusion on coarse meshes (not working yet)
+perturb - method of mesh perturbation
+	0 = no perturbation
+	1 = perturb strand locations only
+	2 = full perturbation of nodes in a random direction
+
+
+&system
+	bcFile		='bc.ns.airfoil'
+	viscous		= 1
+	source		= 0
+	exactSoln	= 0 !0=use initial, 1=trig, 2=perturb, 3=flatBL
+	m0		= .3
+	rho0		= 1.204
+	p0		= 101325.
+	aoa		= 0.
+	yaw		= 0.
+	Re		= 50.
+	ReRefLength	= 1.
+	rGas		= 287.06
+	gamma		= 1.4
+	prn		= .75
+/
+Description of system layer inputs:
+bcFile - name of bc file to use
+viscous - 0=inviscid, 1=full viscous terms
+source - 0=no MMS source term, 1=use MMS source term
+exactSoln - specification of exact or MMS solution. Options include
+	  0 = use free stream values
+	  1 = trigonometric MMS
+	  2 = initially perturbed flow
+	  3 = flat BL flow
+m0 = mach number
+rho0 = freestream density
+p0 = freestream pressure
+aoa = angle of attack, measured from x-axis
+yaw = yaw angle, rotates around z-axis
+Re = Reynolds number
+ReRefLength = length used for Reynolds number calculation
+rGas = ideal gas constant
+gamma = ratio of specific heats
+prn = Prandtl number

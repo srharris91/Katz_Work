@@ -1,0 +1,41 @@
+SPTURBSAOBJS	= System/SPTurbSA/Strand2dFCSPTurbSA.o		   \
+                  System/SPTurbSA/inputRead.o                      \
+                  System/SPTurbSA/prepSetup.o                      \
+                  System/SPTurbSA/initFlow.o                       \
+                  System/SPTurbSA/initSource.o                     \
+                  System/SPTurbSA/initVisFlux.o                    \
+                  System/SPTurbSA/initWallDist.o                   \
+                  System/SPTurbSA/initPenaltyData.o                \
+                  System/SPTurbSA/stepQAdd.o                       \
+                  System/SPTurbSA/stepInvEigenvalue.o              \
+                  System/SPTurbSA/stepVisEigenvalue.o              \
+                  System/SPTurbSA/rhsInvFluxX.o                    \
+                  System/SPTurbSA/rhsInvFluxY.o                    \
+                  System/SPTurbSA/lhsInvFluxJacobian.o             \
+                  System/SPTurbSA/rhsDisFlux.o                     \
+                  System/SPTurbSA/lhsDisFluxJacobian.o             \
+                  System/SPTurbSA/lhsVisVariableJacobian.o         \
+                  System/SPTurbSA/lhsVisFluxNCoeffJacobian.o       \
+                  System/SPTurbSA/rhsVisFlux.o                     \
+                  System/SPTurbSA/rhsVisFluxX.o                    \
+                  System/SPTurbSA/rhsVisFluxY.o                    \
+                  System/SPTurbSA/rhsVisFluxS.o                    \
+                  System/SPTurbSA/rhsVisFluxNCoeff.o               \
+                  System/SPTurbSA/rhsSource.o                      \
+                  System/SPTurbSA/lhsSourceJacobian.o              \
+                  System/SPTurbSA/outputSolution.o                 \
+                  System/SPTurbSA/outputSurfaceForces.o            \
+		  System/SPTurbSA/finalize.o			   \
+		  System/SPTurbSA/bcConflict.o			   \
+		  System/SPTurbSA/rhsBCVector.o			   \
+		  System/SPTurbSA/lhsBCVectorSelfJacobian.o	   \
+		  System/SPTurbSA/rhsBCSelectionMatrix.o	   \
+		  System/SPTurbSA/rhsBCPenalty.o		   \
+		  System/SPTurbSA/rhsBCPenaltyVis.o		   \
+		  System/SPTurbSA/lhsBCPenaltyJacobian.o	   \
+                  System/SPTurbSA/Strand2dFCSPTurbSAInputRead.o	   \
+                  System/SPTurbSA/Strand2dFCSPTurbSABc.o           \
+                  System/SPTurbSA/Strand2dFCSPTurbSABcInviscidWall.o\
+                  System/SPTurbSA/Strand2dFCSPTurbSABcViscousWall.o \
+                  System/SPTurbSA/Strand2dFCSPTurbSABcFarField.o    \
+                  System/SPTurbSA/Strand2dFCSPTurbSABcOutflow.o

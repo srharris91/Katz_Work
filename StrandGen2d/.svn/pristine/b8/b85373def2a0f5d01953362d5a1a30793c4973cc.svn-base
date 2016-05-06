@@ -1,0 +1,803 @@
+// File:        StrandBlock.C
+// Package:     STRANDGEN
+//              Parallel Infrastructure for Cartesian & Strand Solvers
+// Release:     $Name:  $
+// Revision:    $Revision:  $
+// Modified:    $Date:  $
+// Description: StrandBlock class holds concise data for mesh block
+//              
+
+#include "StrandBlock.h"
+
+
+// Fortran interface definitions
+extern "C" {
+  void plotblock_(const int&,
+		  const int&,
+		  const int&,
+		  const int&,
+		  const int&,
+		  const int&,
+		  const int*,
+		  const double*,
+		  const double*,
+		  const int*,
+		  const int*,
+		  const double*);
+  void findcspdim_(const int&,
+		   const int&,
+		   const int&,
+		   const int&,
+		   int&,
+		   const int*,
+		   int*);
+  void fillcsp_(const int&,
+		const int&,
+		const int&,
+		const int&,
+		const int&,
+		const int*,
+		int*,
+		int*);
+  void findpspdim_(const int&,
+		   const int&,
+		   const int&,
+		   const int&,
+		   const int&,
+		   int&,
+		   const int*,
+		   const int*,
+		   const int*,
+		   int*);
+  void fillpsp_(const int&,
+		const int&,
+		const int&,
+		const int&,
+		const int&,
+		const int&,
+		const int*,
+		const int*,
+		const int*,
+		int*,
+		int*);
+  void initpointingvec_(const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int&,
+			const int*,
+			const int*,
+			const int*,
+			const double*,
+			double*,
+			const double*,
+			const int*,
+			const int*,
+			double*,
+			double*);
+  const double& smoothingiter_(const int&,
+			       const int&,
+			       const int&,
+			       const int&,
+			       const int&,
+			       const int&,
+			       const int&,
+			       const int&,
+			       const int*,
+			       const int*,
+			       const int*,
+			       const double*,
+			       double*,
+			       const double*,
+			       const int*,
+			       const int*,
+			       const double*,
+			       const double*,
+			       double&);
+  void strandclipsimple_(const int&,
+			 const int&,
+			 const int&,
+			 const int&,
+			 const int&,
+			 const int*,
+			 int*,
+			 int*);
+}
+
+
+// constructor
+StrandBlock::StrandBlock()
+{
+  d_id = 0;
+  d_pid = 0;
+  d_nFaces = 0;
+  d_nNodes = 0;
+  d_nGfaces = 0;
+  d_nGnodes = 0;
+  d_nBedges = 0;
+  d_nPedges = 0;
+  d_nPstr = 0;
+  d_nFringe = 0;
+  d_nScomp = 0;
+  d_nBcomp = 0;
+  d_face = NULL;
+  d_bEdge = NULL;
+  d_pEdge = NULL;
+  d_fTag = NULL;
+  d_bTag = NULL;
+  d_fClip = NULL;
+  d_nClip = NULL;
+  d_fMap = NULL;
+  d_nMap = NULL;
+  d_eMap = NULL;
+  d_xSrf = NULL;
+  d_xStr = NULL;
+  d_pV = NULL;
+  d_bNorm = NULL;
+
+  d_nCsp1 = 0;
+  d_nPsp1 = 0;
+  d_csp1 = NULL;
+  d_csp2 = NULL;
+  d_psp1 = NULL;
+  d_psp2 = NULL;
+  d_pV0 = NULL;
+  d_ang = NULL;
+
+  d_initialized = false;
+  d_smoothed = false;
+  d_clipped = false;
+  d_sprouted = false;
+}
+
+
+// destructor
+StrandBlock::~StrandBlock()
+{
+  if (d_face) delete [] d_face;
+  if (d_bEdge) delete [] d_bEdge;
+  if (d_pEdge) delete [] d_pEdge;
+  if (d_fTag) delete [] d_fTag;
+  if (d_bTag) delete [] d_bTag;
+  if (d_fClip) delete [] d_fClip;
+  if (d_nClip) delete [] d_nClip;
+  if (d_fMap) delete [] d_fMap;
+  if (d_nMap) delete [] d_nMap;
+  if (d_eMap) delete [] d_eMap;
+  if (d_xSrf) delete [] d_xSrf;
+  if (d_xStr) delete [] d_xStr;
+  if (d_pV) delete [] d_pV;
+  if (d_bNorm) delete [] d_bNorm;
+  if (d_csp1) delete [] d_csp1;
+  if (d_csp2) delete [] d_csp2;
+  if (d_psp1) delete [] d_psp1;
+  if (d_psp2) delete [] d_psp2;
+  if (d_pV0) delete [] d_pV0;
+  if (d_ang) delete [] d_ang;
+
+  d_face = NULL;
+  d_bEdge = NULL;
+  d_pEdge = NULL;
+  d_fTag = NULL;
+  d_bTag = NULL;
+  d_fClip = NULL;
+  d_nClip = NULL;
+  d_fMap = NULL;
+  d_nMap = NULL;
+  d_eMap = NULL;
+  d_xSrf = NULL;
+  d_xStr = NULL;
+  d_pV = NULL;
+  d_bNorm = NULL;
+  d_csp1 = NULL;
+  d_csp2 = NULL;
+  d_psp1 = NULL;
+  d_psp2 = NULL;
+  d_pV0 = NULL;
+  d_ang = NULL;
+}
+
+
+// set methods
+void StrandBlock::setId(const int& id)
+{
+  d_id = id;
+}
+
+void StrandBlock::setPid(const int& pid)
+{
+  d_pid = pid;
+}
+
+void StrandBlock::setNFaces(const int& nFaces)
+{
+  d_nFaces = nFaces;
+}
+
+void StrandBlock::setNNodes(const int& nNodes)
+{
+  d_nNodes = nNodes;
+}
+
+void StrandBlock::setNGfaces(const int& nGfaces)
+{
+  d_nGfaces = nGfaces;
+}
+
+void StrandBlock::setNGnodes(const int& nGnodes)
+{
+  d_nGnodes = nGnodes;
+}
+
+void StrandBlock::setNBedges(const int& nBedges)
+{
+  d_nBedges = nBedges;
+}
+
+void StrandBlock::setNPedges(const int& nPedges)
+{
+  d_nPedges = nPedges;
+}
+
+void StrandBlock::setNPstr(const int& nPstr)
+{
+  d_nPstr = nPstr;
+}
+
+void StrandBlock::setNFringe(const int& nFringe)
+{
+  d_nFringe = nFringe;
+}
+
+void StrandBlock::setNScomp(const int& nScomp)
+{
+  d_nScomp = nScomp;
+}
+
+void StrandBlock::setNBcomp(const int& nBcomp)
+{
+  d_nBcomp = nBcomp;
+}
+
+void StrandBlock::setFace(const int* face)
+{
+  if (face)
+    {
+      d_face = new int[2*d_nFaces];
+      for (int n=0; n<2*d_nFaces; n++)
+	{
+	  d_face[n] = face[n];
+	}
+    }
+  else
+    {
+      d_face = NULL;
+    }
+}
+
+void StrandBlock::setBEdge(const int* bEdge)
+{
+  if (bEdge)
+    {
+      d_bEdge = new int[d_nBedges];
+      for (int n=0; n<d_nBedges; n++)
+	{
+	  d_bEdge[n] = bEdge[n];
+	}
+    }
+  else
+    {
+      d_bEdge = NULL;
+    }
+}
+
+void StrandBlock::setPEdge(const int* pEdge)
+{
+  if (pEdge)
+    {
+      d_pEdge = new int[d_nPedges];
+      for (int n=0; n<d_nPedges; n++)
+	{
+	  d_pEdge[n] = pEdge[n];
+	}
+    }
+  else
+    {
+      d_pEdge = NULL;
+    }
+}
+
+void StrandBlock::setFTag(const int* fTag)
+{
+  d_fTag = new int[d_nFaces];
+  for (int n=0; n<d_nFaces; n++)
+    {
+      d_fTag[n] = fTag[n];
+    }
+}
+
+void StrandBlock::setBTag(const int* bTag)
+{
+  if (bTag)
+    {
+      d_bTag = new int[d_nBedges];
+      for (int n=0; n<d_nBedges; n++)
+	{
+	  d_bTag[n] = bTag[n];
+	}
+    }
+  else
+    {
+      d_bTag = NULL;
+    }
+}
+
+void StrandBlock::setFClip(const int* fClip)
+{
+  d_fClip = new int[d_nFaces];
+  for (int n=0; n<d_nFaces; n++)
+    {
+      d_fClip[n] = fClip[n];
+    }
+}
+
+void StrandBlock::setNClip(const int* nClip)
+{
+  if (nClip)
+    {
+      d_nClip = new int[d_nNodes];
+      for (int n=0; n<d_nNodes; n++)
+	{
+	  d_nClip[n] = nClip[n];
+	}
+    }
+  else
+    {
+      d_nClip = NULL;
+    }
+}
+
+void StrandBlock::setFMap(const int* fMap)
+{
+  d_fMap = new int[d_nFaces];
+  for (int n=0; n<d_nFaces; n++)
+    {
+      d_fMap[n] = fMap[n];
+    }
+
+}
+
+void StrandBlock::setNMap(const int* nMap)
+{
+  if (nMap)
+    {
+      d_nMap = new int[d_nNodes];
+      for (int n=0; n<d_nNodes; n++)
+	{
+	  d_nMap[n] = nMap[n];
+	}
+    }
+  else
+    {
+      d_nMap = NULL;
+    }
+}
+
+void StrandBlock::setEMap(const int* eMap)
+{
+  if (eMap)
+    {
+      d_eMap = new int[d_nPedges];
+      for (int n=0; n<d_nPedges; n++)
+	{
+	  d_eMap[n] = eMap[n];
+	}
+    }
+  else
+    {
+      d_eMap = NULL;
+    }
+}
+
+void StrandBlock::setXSrf(const double* xSrf)
+{
+  if (xSrf)
+    {
+      d_xSrf = new double[2*d_nNodes];
+      for (int n=0; n<2*d_nNodes; n++)
+	{
+	  d_xSrf[n] = xSrf[n];
+	}
+    }
+  else
+    {
+      d_xSrf = NULL;
+    }
+}
+
+void StrandBlock::setXStr(const double* xStr)
+{
+  if (xStr)
+    {
+      d_xStr = new double[d_nPstr+1];
+      for (int n=0; n<d_nPstr+1; n++)
+	{
+	  d_xStr[n] = xStr[n];
+	}
+    }
+  else
+    {
+      d_xStr = NULL;
+    }
+}
+
+void StrandBlock::setPV(const double* pV)
+{
+  if (pV)
+    {
+      d_pV = new double[2*d_nNodes];
+      for (int n=0; n<2*d_nNodes; n++)
+	{
+	  d_pV[n] = pV[n];
+	}
+    }
+  else
+    {
+      d_pV = NULL;
+    }
+}
+
+void StrandBlock::setBNorm(const double* bNorm)
+{
+  if (bNorm)
+    {
+      d_bNorm = new double[2*d_nBcomp];
+      for (int n=0; n<2*d_nBcomp; n++)
+	{
+	  d_bNorm[n] = bNorm[n];
+	}
+    }
+  else
+    {
+      d_bNorm = NULL;
+    }
+}
+
+// get methods
+const int& StrandBlock::getId()
+{
+  return(d_id);
+}
+
+const int& StrandBlock::getPid()
+{
+  return(d_pid);
+}
+
+const int& StrandBlock::getNFaces()
+{
+  return(d_nFaces);
+}
+
+const int& StrandBlock::getNNodes()
+{
+  return(d_nNodes);
+}
+
+const int& StrandBlock::getNGfaces()
+{
+  return(d_nGfaces);
+}
+
+const int& StrandBlock::getNGnodes()
+{
+  return(d_nGnodes);
+}
+
+const int& StrandBlock::getNBedges()
+{
+  return(d_nBedges);
+}
+
+const int& StrandBlock::getNPedges()
+{
+  return(d_nPedges);
+}
+
+const int& StrandBlock::getNPstr()
+{
+  return(d_nPstr);
+}
+
+const int& StrandBlock::getNFringe()
+{
+  return(d_nFringe);
+}
+
+const int& StrandBlock::getNScomp()
+{
+  return(d_nScomp);
+}
+
+const int& StrandBlock::getNBcomp()
+{
+  return(d_nBcomp);
+}
+
+const int* StrandBlock::getFace()
+{
+  return(d_face);
+}
+
+const int* StrandBlock::getBEdge()
+{
+  return(d_bEdge);
+}
+
+const int* StrandBlock::getPEdge()
+{
+  return(d_pEdge);
+}
+
+int* StrandBlock::getFTag()
+{
+  return(d_fTag);
+}
+
+const int* StrandBlock::getBTag()
+{
+  return(d_bTag);
+}
+
+int* StrandBlock::getFClip()
+{
+  return(d_fClip);
+}
+
+const int* StrandBlock::getNClip()
+{
+  return(d_nClip);
+}
+
+const int* StrandBlock::getFMap()
+{
+  return(d_fMap);
+}
+
+const int* StrandBlock::getNMap()
+{
+  return(d_nMap);
+}
+
+const int* StrandBlock::getEMap()
+{
+  return(d_eMap);
+}
+
+const double* StrandBlock::getXSrf()
+{
+  return(d_xSrf);
+}
+
+const double* StrandBlock::getXStr()
+{
+  return(d_xStr);
+}
+
+const double* StrandBlock::getPV()
+{
+  return(d_pV);
+}
+
+const double* StrandBlock::getBNorm()
+{
+  return(d_bNorm);
+}
+
+const bool& StrandBlock::getSprouted()
+{
+  return(d_sprouted);
+}
+
+
+// initialize the sprout procedure
+void StrandBlock::sproutInitialize()
+{
+  //form cells surrounding points and cells surrounding cells arrays, which
+  //are needed for pointing vector smoothing
+  d_csp2 = new int[d_nNodes+1];
+  d_psp2 = new int[d_nNodes+1];
+  
+  findcspdim_(d_nFaces,
+	      d_nNodes,
+	      d_nGfaces,
+	      d_nGnodes,
+	      d_nCsp1,
+	      d_face,
+	      d_csp2);
+
+  d_csp1 = new int[d_nCsp1];
+
+  fillcsp_(d_nFaces,
+	   d_nNodes,
+	   d_nGfaces,
+	   d_nGnodes,
+	   d_nCsp1,
+	   d_face,
+	   d_csp1,
+	   d_csp2);
+
+  findpspdim_(d_nFaces,
+	      d_nNodes,
+	      d_nGfaces,
+	      d_nGnodes,
+	      d_nCsp1,
+	      d_nPsp1,
+	      d_face,
+	      d_csp1,
+	      d_csp2,
+	      d_psp2);
+
+  d_psp1 = new int[d_nPsp1];
+
+  fillpsp_(d_nFaces,
+	   d_nNodes,
+	   d_nGfaces,
+	   d_nGnodes,
+	   d_nCsp1,
+	   d_nPsp1,
+	   d_face,
+	   d_csp1,
+	   d_csp2,
+	   d_psp1,
+	   d_psp2);
+  
+  //allocate smoothing arrays
+  d_pV0 = new double[2*d_nNodes];
+  d_ang = new double[d_nNodes];
+
+  // initialize pointing vectors
+  initpointingvec_(d_nFaces,
+		   d_nNodes,
+		   d_nGfaces,
+		   d_nGnodes,
+		   d_nBedges,
+		   d_nBcomp,
+		   d_nCsp1,
+		   d_nPsp1,
+		   d_face,
+		   d_bEdge,
+		   d_bTag,
+		   d_xSrf,
+		   d_pV,
+		   d_bNorm,
+		   d_csp1,
+		   d_csp2,
+		   d_pV0,
+		   d_ang);
+
+  d_initialized = true;
+  d_sprouted = true;
+}
+
+
+// perform a strand vector smoothing iteration
+double StrandBlock::sproutSmooth()
+{
+  if (d_initialized)
+    {
+      double rSmoothL2;
+      smoothingiter_(d_nFaces,
+		     d_nNodes,
+		     d_nGfaces,
+		     d_nGnodes,
+		     d_nBedges,
+		     d_nBcomp,
+		     d_nCsp1,
+		     d_nPsp1,
+		     d_face,
+		     d_bEdge,
+		     d_bTag,
+		     d_xSrf,
+		     d_pV,
+		     d_bNorm,
+		     d_psp1,
+		     d_psp2,
+		     d_pV0,
+		     d_ang,
+		     rSmoothL2);
+      d_smoothed = true;
+      d_sprouted = true;
+      return(rSmoothL2);
+    }
+  else
+    {
+      cout << "StrandBlock: ERROR!! sprout not initialized" << endl;
+      return(0.);
+    }
+}
+
+
+// set strand clipping index (eventually done by PUNDIT)
+void StrandBlock::sproutClip()
+{
+  if (d_initialized)
+    {
+      strandclipsimple_(d_nFaces,
+			d_nNodes,
+			d_nGfaces,
+			d_nGnodes,
+			d_nPstr,
+			d_face,
+			d_fClip,
+			d_nClip);
+    }
+  else
+    {
+      cout << "StrandBlock: ERROR!! sprout not initialized" << endl;
+    }
+
+  d_clipped = true;
+  d_sprouted = true;
+}
+
+
+// clean up and free memory used in the sprout procedure
+void StrandBlock::sproutFinalize()
+{
+  if(d_csp1) delete [] d_csp1;
+  if(d_csp2) delete [] d_csp2;
+  if(d_psp1) delete [] d_psp1;
+  if(d_psp2) delete [] d_psp2;
+  if(d_pV0) delete [] d_pV0;
+  if(d_ang) delete [] d_ang;
+  d_nCsp1 = 0;
+  d_nPsp1 = 0;
+  d_csp1 = NULL;
+  d_csp2 = NULL;
+  d_psp1 = NULL;
+  d_psp2 = NULL;
+  d_pV0 = NULL;
+  d_ang = NULL;
+}
+
+// print block info
+void StrandBlock::print()
+{
+  cout << "\n------------------------"
+       << "\nStrand Block:            " << d_id
+       << "\n\t Proc ID:              " << d_pid
+       << "\n\t #faces:               " << d_nFaces
+       << "\n\t #nodes:               " << d_nNodes
+       << "\n\t #boundary edges:      " << d_nBedges
+       << "\n\t #pts per strand       " << d_nPstr
+       << endl;
+}
+
+
+// output plot file of the mesh on this block
+void StrandBlock::plot()
+{
+  if (d_sprouted)
+    {
+      plotblock_(d_id,
+		 d_nFaces,
+		 d_nNodes,
+		 d_nGfaces,
+		 d_nGnodes,
+		 d_nPstr,
+		 d_face,
+		 d_xStr,
+		 d_xSrf,
+		 d_nClip,
+		 d_fClip,
+		 d_pV);
+    }
+  else
+    {
+      cout << "StrandBlock: ERROR!! sprout not completed before plotting" << endl;
+    }
+}

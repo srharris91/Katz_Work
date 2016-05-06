@@ -1,0 +1,8 @@
+\begin{thebibliography}{1}
+\newcommand{\enquote}[1]{``#1''}
+
+\bibitem{tufte:83bk}
+Tufte, E.~R., {\em The Visual Display of Quantitative Information\/}, Graphics
+  Press, 1983.
+
+\end{thebibliography}

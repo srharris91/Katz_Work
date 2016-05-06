@@ -1,0 +1,400 @@
+!> \brief
+!! This subroutine performs stage 2 of the surface mesh partitioning.
+!!
+!! Comments:
+!!
+!! Versions:
+!!   - 1.0 Katz 08/03/2010
+!!
+!! Additional notes:\par
+!!  none
+!!
+!! Source code:
+!!   \include partitionstage2.f90
+
+
+SUBROUTINE partitionstage2(sb, &
+		           nStrandBlocks, &
+                           nSurfFacesD, &
+                           nSurfNodesD, &
+                           nBndEdgesD, &
+                           nPrtEdgesD, &
+                           globalFaceMap, &
+                           globalNodeMap, &
+                           globalEdgeMap, &
+                           prtEdges, &
+                           ncsp1, &
+                           csp1, &
+                           csp2, &
+                           nPtsPerStrand, &
+                           nFringeP, &
+                           surfaceOnly, &
+                           nSurfNodes, &
+                           nSurfFaces, &
+                           nBndEdges, &
+                           nSurfPatches, &
+                           nEdgePatches, &
+                           nSharpG,&
+                           surfFaces, &
+                           bndEdges, &
+                           nodeClip, &
+                           faceClip, &
+                           faceTag, &
+                           bndTag, &
+                           sFlagG, &
+                           xSurf, &
+                           pointingVec, &
+                           xStrand, &
+                           bndNormal, &
+                           id, &
+                           pid, &
+                           nFaces, &
+                           nNodes, &
+                           nGfaces, &
+                           nGnodes, &
+                           nBedges, &
+                           nPedges, &
+                           nPstr, &
+                           nFringe, &
+                           nScomp, &
+                           nBcomp, &
+                           nSharp, &
+                           face, &
+                           bEdge, &
+                           pEdge, &
+                           fTag, &
+                           bTag, &
+                           fClip, &
+                           nClip, &
+                           fMap, &
+                           nMap, &
+                           eMap, &
+                           sFlag, &
+                           xSrf, &
+                           xStr, &
+                           pV, &
+                           bNorm)
+
+IMPLICIT NONE
+
+
+INTEGER,INTENT(IN   ) :: sb, &
+		         nStrandBlocks, &
+                         nSurfFacesD, &
+                         nSurfNodesD, &
+                         nBndEdgesD, &
+                         nPrtEdgesD, &
+                         ncsp1, &
+                         nPtsPerStrand, &
+                         nFringeP, &
+                         surfaceOnly, &
+                         nSurfNodes, &
+                         nSurfFaces, &
+                         nBndEdges, &
+                         nSurfPatches, &
+                         nEdgePatches, &
+                         nSharpG
+INTEGER,INTENT(IN   ),DIMENSION(  nSurfFacesD ) :: globalFaceMap
+INTEGER,INTENT(IN   ),DIMENSION(  nSurfNodesD ) :: globalNodeMap
+INTEGER,INTENT(IN   ),DIMENSION(2,nPrtEdgesD  ) :: globalEdgeMap
+INTEGER,INTENT(IN   ),DIMENSION(2,nPrtEdgesD  ) :: prtEdges
+INTEGER,INTENT(IN   ),DIMENSION(ncsp1        ) :: csp1
+INTEGER,INTENT(IN   ),DIMENSION(nSurfNodes+1 ) :: csp2
+INTEGER,INTENT(IN   ),DIMENSION(2,nSurfFaces) :: surfFaces
+INTEGER,INTENT(IN   ),DIMENSION(nBndEdges) :: bndEdges
+INTEGER,INTENT(IN   ),DIMENSION(nSurfNodes) :: nodeClip
+INTEGER,INTENT(IN   ),DIMENSION(nSurfFaces) :: faceClip
+INTEGER,INTENT(IN   ),DIMENSION(nSurfFaces) :: faceTag
+INTEGER,INTENT(IN   ),DIMENSION(nBndEdges) :: bndTag
+INTEGER,INTENT(IN   ),DIMENSION(  nSurfNodes) :: sFlagG
+REAL   ,INTENT(IN   ),DIMENSION(2,nSurfNodes) :: xSurf
+REAL   ,INTENT(IN   ),DIMENSION(2,nSurfNodes) :: pointingVec
+REAL   ,INTENT(IN   ),DIMENSION(0:nPtsPerStrand) :: xStrand
+REAL   ,INTENT(IN   ),DIMENSION(2,nEdgePatches) :: bndNormal
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: id
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: pid
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nFaces
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nNodes
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nGfaces
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nGnodes
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nBedges
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nPedges
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nPstr
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nFringe
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nScomp
+INTEGER,INTENT(IN   ),DIMENSION(nStrandBlocks) :: nBcomp
+INTEGER,INTENT(INOUT),DIMENSION(nStrandBlocks) :: nSharp
+INTEGER,INTENT(INOUT),DIMENSION(2,nFaces(sb) ) :: face
+INTEGER,INTENT(INOUT),DIMENSION(  nBedges(sb)) :: bEdge
+INTEGER,INTENT(INOUT),DIMENSION(  nPedges(sb)) :: pEdge
+INTEGER,INTENT(INOUT),DIMENSION(  nFaces(sb) ) :: fTag
+INTEGER,INTENT(INOUT),DIMENSION(  nBedges(sb)) :: bTag
+INTEGER,INTENT(INOUT),DIMENSION(  nFaces(sb) ) :: fClip
+INTEGER,INTENT(INOUT),DIMENSION(  nNodes(sb) ) :: nClip
+INTEGER,INTENT(INOUT),DIMENSION(  nFaces(sb) ) :: fMap
+INTEGER,INTENT(INOUT),DIMENSION(  nNodes(sb) ) :: nMap
+INTEGER,INTENT(INOUT),DIMENSION(  nPedges(sb)) :: eMap
+INTEGER,INTENT(INOUT),DIMENSION(  nNodes(sb) ) :: sFlag
+REAL,   INTENT(INOUT),DIMENSION(2,nNodes(sb) ) :: xSrf
+REAL,   INTENT(INOUT),DIMENSION(  nPstr(sb)+1) :: xStr
+REAL,   INTENT(INOUT),DIMENSION(2,nNodes(sb) ) :: pV
+REAL,   INTENT(INOUT),DIMENSION(2,nBcomp(sb) ) :: bNorm
+INTEGER :: i,j,k,l,m,n,n1,n2
+INTEGER :: idD,pidD,nFacesD,nNodesD,nGfacesD,nGnodesD,nBedgesD,nPedgesD
+INTEGER :: nPstrD,nFringeD,nScompD,nBcompD
+INTEGER,ALLOCATABLE,DIMENSION(:) :: nflag,nflag2,cflag,bflag
+
+
+! dimensions of current strandBlock
+idD      = id(sb)
+pidD     = pid(sb)
+nFacesD  = nFaces(sb)
+nNodesD  = nNodes(sb)
+nGfacesD = nGfaces(sb)
+nGnodesD = nGnodes(sb)
+nBedgesD = nBedges(sb)
+nPedgesD = nPedges(sb)
+nPstrD   = nPstr(sb)
+nFringeD = nFringe(sb)
+nScompD  = nScomp(sb)
+nBcompD  = nBcomp(sb)
+
+
+ALLOCATE(nflag(nSurfNodes), &
+     nflag2(nSurfNodes), &
+     cflag(nSurfFaces), &
+     bflag(nSurfNodes))
+
+! fill in easy data
+fclip = nPstrD
+bNorm = bndNormal
+xStr  = xStrand
+
+
+! this assumes 1 strandblock!
+sFlag = sFlagG
+
+
+! flag the boundary nodes with the surface patch number
+bflag = 0
+DO i=1,nBndEdges
+   k        = bndEdges(i)
+   bflag(k) = bndTag(i)
+END DO
+
+
+! fill in face data
+k = 0
+DO n=1,nSurfFaces
+IF (globalFaceMap(n) == idD) THEN
+   k         = k+1
+   face(:,k) = surfFaces(:,n)
+   ftag(  k) = faceTag  (  n)
+   fMap(  k) = n
+END IF
+END DO
+
+IF (k /= nFacesD-nGfacesD) THEN
+   WRITE(*,*)'*** faces counted incorrectly in partitionstage2.f90 ***'
+   STOP
+END IF
+
+! add the nodes in this partition
+nflag = 0
+DO n=1,nFacesD-nGfacesD
+DO k=1,2
+   nflag(face(k,n)) = 1
+END DO
+END DO
+k = 0
+DO n=1,nSurfNodes
+IF (nflag(n) /= 0) THEN
+   k        = k+1
+   nflag(n) = k
+   nMap(k)  = n
+END IF
+END DO
+IF (k /= nNodesD-nGnodesD) THEN
+   WRITE(*,*)'*** nodes counted incorrectly in partitionstage2.f90 ***'
+   STOP
+END IF
+
+! add ghost cells
+cflag = 0
+DO n=1,nNodesD-nGnodesD 
+   i        = nMap(n)
+DO m=csp2(i)+1,csp2(i+1)
+   j        = csp1(m)
+   cflag(j) = 1
+   
+END DO
+END DO
+DO n=1,nFacesD-nGfacesD
+   i        = fMap(n)
+   cflag(i) = 0
+END DO
+k = nFacesD-nGfacesD
+DO n=1,nSurfFaces
+IF (cflag(n) == 1) THEN
+   k         = k+1
+   face(:,k) = surfFaces(:,n)
+   ftag(  k) = faceTag  (  n)
+   fMap(  k) = n
+END IF
+END DO
+IF (k /= nFacesD) THEN
+   WRITE(*,*)'*** ghost faces counted incorrectly in partitionstage2.f90 ***'
+   STOP
+END IF
+
+! add ghost nodes
+nflag2 = 0
+DO n=nFacesD-nGfacesD+1,nFacesD
+DO k=1,2
+   nflag2(face(k,n)) = 1
+END DO
+END DO
+DO n=1,nNodesD-nGnodesD
+   i         = nMap(n)
+   nflag2(i) = 0
+END DO
+k = nNodesD-nGnodesD
+DO n=1,nSurfNodes
+IF (nflag2(n) == 1) THEN
+   k        = k+1
+   nflag(n) = k
+   nMap(k)  = n 
+END IF
+END DO
+IF (k /= nNodesD) THEN
+   WRITE(*,*)'*** ghost nodes counted incorrectly in partitionstage2.f90 ***'
+   STOP
+END IF
+
+
+! fill in boundary edge data
+k = 0
+DO n=1,nFacesD-nGfacesD
+   n1 = face(1,n)
+   n2 = face(2,n)
+IF (bflag(n1) > 0) THEN
+   k        = k+1
+   bEdge(k) = n1
+   bTag (k) = bflag(n1)
+END IF
+IF (bflag(n2) > 0) THEN
+   k        = k+1
+   bEdge(k) = n2
+   bTag (k) = bflag(n2)
+END IF
+END DO
+IF (k /= nBedgesD) THEN
+   WRITE(*,*)'*** bnd. edges counted incorrectly in partitionstage2.f90 ***'
+   STOP
+END IF
+
+
+! find any partition edges
+cflag = 0
+DO n=1,nPrtEdgesD
+   n1        = prtEdges(1,n)
+   n2        = prtEdges(2,n)
+   cflag(n1) = n
+   cflag(n2) = n
+END DO
+DO n=1,nNodesD-nGnodesD
+   i         = nMap(n)
+   k         = 1
+DO m=csp2(i)+1,csp2(i+1)
+   j         = csp1(m)
+   k         = MIN(k,cflag(j))
+END DO
+IF (k /= 0) THEN
+DO m=csp2(i)+1,csp2(i+1)
+   j         = csp1(m)
+   cflag(j)  = i
+END DO
+END IF
+END DO
+
+k = 0
+DO n=1,nPrtEdgesD
+   n1       = prtEdges(1,n)
+   n2       = prtEdges(2,n)
+   i        = globalFaceMap(n1)
+   j        = globalFaceMap(n2)
+IF (i == idD .OR. j == idD) THEN
+   k        = k+1
+   pEdge(k) = cflag(n1)
+   eMap (k) = n
+END IF
+END DO
+IF (k /= nPedgesD) THEN
+   WRITE(*,*)'*** partitions edges miscounted in partitionstage2.f90 ***'
+   STOP
+END IF
+
+
+! set all arrays to point to local values
+DO n=1,nFacesD
+   face(1,n) = nflag(face(1,n))
+   face(2,n) = nflag(face(2,n))
+ENd DO
+DO n=1,nBedgesD
+   bEdge(n) = nflag(bEdge(n))
+END DO
+DO n=1,nPedgesD
+   pEdge(n) = nflag(pEdge(n))
+END DO
+
+
+! fill in nodal data
+DO n=1,nNodesD
+   k         = nMap(n)
+   nclip(n)  = nodeClip(k)
+   xSrf(:,n) = xSurf(:,k)
+   pV(:,n)   = pointingVec(:,k)
+END DO
+
+
+DEALLOCATE(nflag, &
+     nflag2, &
+     cflag, &
+     bflag)
+
+
+WRITE(*,'(A18,I8,A4)')'*** PARTITION ID: ',idD,' ***'
+WRITE(*,'(A43,I8)')'processor id: ',pidD
+WRITE(*,'(A43,I8)')'total number of interior and fringe cells: ',nFacesD
+WRITE(*,'(A43,I8)')'total number of interior and fringe nodes: ',nNodesD
+WRITE(*,'(A43,I8)')'total number of fringe cells: ',nGfacesD
+WRITE(*,'(A43,I8)')'total number of fringe nodes: ',nGnodesD
+WRITE(*,'(A43,I8)')'number of boundary edges: ',nBedgesD
+WRITE(*,'(A43,I8)')'number of partition edges: ',nPedgesD
+WRITE(*,*)
+
+!write(*,*)
+!write(*,*)'face:'
+!do n=1,nfacesd
+!   write(*,*)n,face(:,n),ftag(n),fmap(n)
+!end do
+!write(*,*)
+!write(*,*)'bedge:'
+!do n=1,nbedgesd
+!   write(*,*)n,bedge(n)
+!end do
+!write(*,*)
+!write(*,*)'nmap:'
+!do n=1,nnodesd
+!   write(*,*)n,nmap(n)
+!end do
+!write(*,*)
+!write(*,*)'pedge:'
+!do n=1,npedgesd
+!   write(*,*)n,pedge(n),emap(n),prtedges(:,emap(n))
+!end do
+!write(*,*)
+!write(*,*)
+
+
+END SUBROUTINE partitionstage2
