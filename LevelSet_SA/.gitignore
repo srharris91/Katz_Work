@@ -1,0 +1,10 @@
+*
+
+!*/
+!*.f90
+!*.F90
+!*.for
+!*.Makefile
+!*.stl
+!*.namelist
+!./Lib_VTK_IO/
